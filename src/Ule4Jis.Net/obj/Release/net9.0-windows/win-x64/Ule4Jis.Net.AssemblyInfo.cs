@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Ule4Jis.Net")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8ad2acc1f55ae082a51bfcdf4eb509b4927dd6f6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8a3ff75f0124a95751392c72a341a50965681e85")]
 [assembly: System.Reflection.AssemblyProductAttribute("Ule4Jis.Net")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Ule4Jis.Net")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

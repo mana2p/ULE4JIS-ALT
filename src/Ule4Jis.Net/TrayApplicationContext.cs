@@ -10,6 +10,9 @@ namespace Ule4Jis.Net
         private readonly NotifyIcon _notifyIcon;
         private readonly ToolStripMenuItem _emulationMenuItem;
         private readonly ToolStripMenuItem _altImeMenuItem;
+        private readonly ToolStripMenuItem _capsLockMenu;
+        private readonly ToolStripMenuItem _capsImeToggleMenuItem;
+        private readonly ToolStripMenuItem _capsDisabledMenuItem;
         private readonly ToolStripMenuItem _startupMenuItem;
 
         private const string AppName = "Ule4Jis.Net";
@@ -27,6 +30,20 @@ namespace Ule4Jis.Net
                 Checked = KeyboardHook.AltImeEnabled
             };
 
+            _capsImeToggleMenuItem = new ToolStripMenuItem("IMEをトグル切り替え (ON/OFF)", null, (s, e) => SetCapsLockMode(CapsLockMode.ImeToggle))
+            {
+                Checked = (AltImeSwitcher.CurrentCapsLockMode == CapsLockMode.ImeToggle)
+            };
+
+            _capsDisabledMenuItem = new ToolStripMenuItem("無効 (通常のCapsLock)", null, (s, e) => SetCapsLockMode(CapsLockMode.Disabled))
+            {
+                Checked = (AltImeSwitcher.CurrentCapsLockMode == CapsLockMode.Disabled)
+            };
+
+            _capsLockMenu = new ToolStripMenuItem("CapsLockの動作");
+            _capsLockMenu.DropDownItems.Add(_capsImeToggleMenuItem);
+            _capsLockMenu.DropDownItems.Add(_capsDisabledMenuItem);
+
             _startupMenuItem = new ToolStripMenuItem("Windows起動時に自動起動", null, OnToggleStartup)
             {
                 Checked = IsStartupEnabled()
@@ -35,6 +52,7 @@ namespace Ule4Jis.Net
             var contextMenu = new ContextMenuStrip();
             contextMenu.Items.Add(_emulationMenuItem);
             contextMenu.Items.Add(_altImeMenuItem);
+            contextMenu.Items.Add(_capsLockMenu);
             contextMenu.Items.Add(new ToolStripSeparator());
             contextMenu.Items.Add(_startupMenuItem);
             contextMenu.Items.Add(new ToolStripSeparator());
@@ -52,6 +70,13 @@ namespace Ule4Jis.Net
             KeyboardHook.Start();
         }
 
+        private void SetCapsLockMode(CapsLockMode mode)
+        {
+            AltImeSwitcher.CurrentCapsLockMode = mode;
+            _capsImeToggleMenuItem.Checked = (mode == CapsLockMode.ImeToggle);
+            _capsDisabledMenuItem.Checked = (mode == CapsLockMode.Disabled);
+        }
+
         private void OnToggleEmulation(object? sender, EventArgs e)
         {
             KeyboardHook.EmulationEnabled = !KeyboardHook.EmulationEnabled;
@@ -62,6 +87,7 @@ namespace Ule4Jis.Net
         {
             KeyboardHook.AltImeEnabled = !KeyboardHook.AltImeEnabled;
             _altImeMenuItem.Checked = KeyboardHook.AltImeEnabled;
+            _capsLockMenu.Enabled = KeyboardHook.AltImeEnabled;
         }
 
         private void OnToggleStartup(object? sender, EventArgs e)

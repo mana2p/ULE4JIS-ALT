@@ -16,6 +16,9 @@ namespace Ule4Jis.Net
         {
             if (_hookID != IntPtr.Zero) return;
 
+            // 起動時にCapsLock LEDが点灯している場合は自動消灯
+            NativeMethods.DisableCapsLockLed();
+
             _hookDelegate = HookCallback;
             using (Process curProcess = Process.GetCurrentProcess())
             using (ProcessModule? curModule = curProcess.MainModule)
@@ -51,10 +54,14 @@ namespace Ule4Jis.Net
                 uint vkCode = hookStruct.vkCode;
                 bool isDown = (msg == NativeMethods.WM_KEYDOWN || msg == NativeMethods.WM_SYSKEYDOWN);
 
-                // 1. Alt-IME 切り替え処理
+                // 1. Alt-IME / CapsLock 切り替え処理
                 if (AltImeEnabled)
                 {
-                    AltImeSwitcher.ProcessKeyEvent(vkCode, hookStruct.flags, msg);
+                    bool handled = AltImeSwitcher.ProcessKeyEvent(vkCode, hookStruct.flags, msg);
+                    if (handled)
+                    {
+                        return (IntPtr)1; // イベントを消費
+                    }
                 }
 
                 // 2. ULE4JIS US配列マッピング処理

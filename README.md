@@ -1,6 +1,6 @@
 # ULE4JIS + Alt-IME (.NET 9 Edition)
 
-JIS (日本語) キーボードで US (英語) 配列の入力をエミュレートする **ULE4JIS** をモダンな **.NET 9 (C#)** へ完全移植・再構築し、さらに左右 Alt キーの単体押し（空打ち）で IME の OFF/ON を切り替える機能（**alt-ime-ahk 互換**）を追加した統合ツールです。
+JIS (日本語) キーボードで US (英語) 配列の入力をエミュレートする **ULE4JIS** をモダンな **.NET 9 (C#)** へ完全移植・再構築し、さらに左右 Alt キーの単体押し（空打ち）での IME 切り替え（**alt-ime-ahk 互換**）や **CapsLock カスタマイズ機能 (sgk/ULE4JIS 互換)** を追加した統合ツールです。
 
 ---
 
@@ -16,7 +16,12 @@ JIS (日本語) キーボードで US (英語) 配列の入力をエミュレー
    - ※ `Alt + Tab` や `Alt + F4` などのショートカット操作時は通常の Alt キーとして動作し、IME切り替えは発動しません。
    - `WM_IME_CONTROL` メッセージ通信により、あらゆる Windows アプリケーション（ブラウザ、エディタ、ターミナル等）で高い互換性と安定性を実現。
 
-3. **超軽量＆タスクトレイ常駐**
+3. **CapsLock キーの動作カスタマイズ & 自動消灯 (sgk/ULE4JIS 互換)**
+   - **CapsLock 単体押しで IME トグル切り替え**: CapsLock キーを押すたびに IME の ON / OFF を交互に切り替え可能。
+   - **CapsLock LED 自動解除**: アプリ起動時に間違えて CapsLock がON（点灯）になっていた場合、自動的に消灯・解除します。
+   - **動作モードの切り替え**: トレイメニューから「IMEトグル切り替え」と「無効（通常のCapsLock）」をいつでも切り替えられます。
+
+4. **超軽量＆タスクトレイ常駐**
    - 画面を持たないタスクトレイ常駐型アプリケーションです。
    - トレイアイコンの右クリックメニューから各機能の ON/OFF 切り替えや「Windows起動時の自動起動」を簡単に設定できます。
 
@@ -30,6 +35,7 @@ JIS (日本語) キーボードで US (英語) 配列の入力をエミュレー
 | **ビルド環境** | Visual Studio 2005/2008 (古いC++環境が必要) | **.NET 9.0 SDK (`dotnet build` / `dotnet publish` で一発ビルド可能)** |
 | **配布形態** | 複数DLL・依存ファイルあり | **約160KBの超軽量・単一実行ファイル (`.exe`)** |
 | **Altキー切り替え** | なし | **あり (左Alt: IME OFF / 右Alt: IME ON)** |
+| **CapsLock制御** | なし | **あり (IMEトグル切り替え & 起動時LED自動消灯)** |
 | **自動起動設定** | 手動でスタートアップフォルダへ配置 | **トレイメニューからワンクリックでレジストリ登録可能** |
 
 ---
@@ -58,4 +64,5 @@ dotnet publish src/Ule4Jis.Net -c Release -r win-x64 --self-contained false -p:P
 ## 🙏 クレジット・謝辞 (Credits & Acknowledgments)
 
 - **オリジナル ULE4JIS**: [dezz/ULE4JIS](https://github.com/dezz/ULE4JIS)
-- **Alt IME 切り替えロジックの参照元**: [karakaram/alt-ime-ahk](https://github.com/karakaram/alt-ime-ahk)
+- **Alt IME 切り替えロジック**: [karakaram/alt-ime-ahk](https://github.com/karakaram/alt-ime-ahk)
+- **CapsLock 機能拡張の参考**: [sgk/ULE4JIS](https://github.com/sgk/ULE4JIS)

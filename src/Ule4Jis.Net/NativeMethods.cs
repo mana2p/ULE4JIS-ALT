@@ -13,6 +13,7 @@ namespace Ule4Jis.Net
         public const int WM_SYSKEYUP = 0x0105;
 
         // Virtual Key Codes
+        public const byte VK_CAPITAL = 0x14; // Caps Lock
         public const byte VK_SHIFT = 0x10;
         public const byte VK_CONTROL = 0x11;
         public const byte VK_MENU = 0x12;  // Alt
@@ -29,6 +30,7 @@ namespace Ule4Jis.Net
         public const byte VK_KANJI = 0x19;
 
         public const uint WM_IME_CONTROL = 0x0283;
+        public const int IMC_GETOPENSTATUS = 0x0005;
         public const int IMC_SETOPENSTATUS = 0x0006;
 
         // OEM Virtual Keys for JIS / US Layout
@@ -176,7 +178,7 @@ namespace Ule4Jis.Net
             inputs[0].U.ki.wScan = 0;
             inputs[0].U.ki.dwFlags = (isDown ? 0u : KEYEVENTF_KEYUP) | (isExtended ? KEYEVENTF_EXTENDEDKEY : 0u);
             inputs[0].U.ki.time = 0;
-            inputs[0].U.ki.dwExtraInfo = (IntPtr)0x554C4534; // "ULE4" marker to identify our own sent keys
+            inputs[0].U.ki.dwExtraInfo = (IntPtr)0x554C4534; // "ULE4" marker
 
             SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
         }
@@ -184,6 +186,21 @@ namespace Ule4Jis.Net
         public static bool IsShiftPressed()
         {
             return (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+        }
+
+        public static bool IsCapsLockOn()
+        {
+            return (GetKeyState(VK_CAPITAL) & 0x0001) != 0;
+        }
+
+        public static void DisableCapsLockLed()
+        {
+            if (IsCapsLockOn())
+            {
+                // CapsLockをトグルして消灯させる
+                SendKey(VK_CAPITAL, true);
+                SendKey(VK_CAPITAL, false);
+            }
         }
     }
 }
