@@ -1,0 +1,2 @@
+C:\Users\ntakeshi\DIY\ULE4JIS\src\Ule4Jis.Net\bin\Release\net9.0-windows\win-x64\publish\Ule4Jis.Net.pdb
+C:\Users\ntakeshi\DIY\ULE4JIS\src\Ule4Jis.Net\bin\Release\net9.0-windows\win-x64\publish\Ule4Jis.Net.exe

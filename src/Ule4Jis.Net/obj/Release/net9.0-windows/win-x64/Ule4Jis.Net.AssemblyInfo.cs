@@ -11,9 +11,9 @@ using System;
 using System.Reflection;
 
 [assembly: System.Reflection.AssemblyCompanyAttribute("Ule4Jis.Net")]
-[assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
+[assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b76075ae322a647b75b8231078281a23785bd2a9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6fc4d6822da16cb73ef01c50680d180168441016")]
 [assembly: System.Reflection.AssemblyProductAttribute("Ule4Jis.Net")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Ule4Jis.Net")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "FxEVsCo0SWg=",
+  "dgSpecHash": "MdUnhATtuDo=",
   "success": true,
   "projectFilePath": "C:\\Users\\ntakeshi\\DIY\\ULE4JIS\\src\\Ule4Jis.Net\\Ule4Jis.Net.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\ntakeshi\\.nuget\\packages\\microsoft.net.illink.tasks\\9.0.5\\microsoft.net.illink.tasks.9.0.5.nupkg.sha512"
+  ],
   "logs": []
 }
