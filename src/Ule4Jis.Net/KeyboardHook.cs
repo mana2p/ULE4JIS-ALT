@@ -54,7 +54,7 @@ namespace Ule4Jis.Net
                 // 1. Alt-IME 切り替え処理
                 if (AltImeEnabled)
                 {
-                    AltImeSwitcher.ProcessKeyEvent(vkCode, msg);
+                    AltImeSwitcher.ProcessKeyEvent(vkCode, hookStruct.flags, msg);
                 }
 
                 // 2. ULE4JIS US配列マッピング処理

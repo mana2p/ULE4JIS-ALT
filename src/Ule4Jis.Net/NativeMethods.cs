@@ -13,17 +13,23 @@ namespace Ule4Jis.Net
         public const int WM_SYSKEYUP = 0x0105;
 
         // Virtual Key Codes
+        public const byte VK_SHIFT = 0x10;
+        public const byte VK_CONTROL = 0x11;
+        public const byte VK_MENU = 0x12;  // Alt
         public const byte VK_LSHIFT = 0xA0;
         public const byte VK_RSHIFT = 0xA1;
-        public const byte VK_SHIFT = 0x10;
+        public const byte VK_LCONTROL = 0xA2;
+        public const byte VK_RCONTROL = 0xA3;
         public const byte VK_LMENU = 0xA4; // Left Alt
         public const byte VK_RMENU = 0xA5; // Right Alt
-        public const byte VK_MENU = 0x12;  // Alt
 
-        // IME Virtual Keys
+        // IME Virtual Keys & Messages
         public const byte VK_IME_ON = 0x16;
         public const byte VK_IME_OFF = 0x1A;
         public const byte VK_KANJI = 0x19;
+
+        public const uint WM_IME_CONTROL = 0x0283;
+        public const int IMC_SETOPENSTATUS = 0x0006;
 
         // OEM Virtual Keys for JIS / US Layout
         public const byte VK_OEM_1 = 0xBA;   // JIS: :*, US: ;:
@@ -55,6 +61,29 @@ namespace Ule4Jis.Net
             public uint flags;
             public uint time;
             public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int left;
+            public int top;
+            public int right;
+            public int bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct GUITHREADINFO
+        {
+            public int cbSize;
+            public int flags;
+            public IntPtr hwndActive;
+            public IntPtr hwndFocus;
+            public IntPtr hwndCapture;
+            public IntPtr hwndMenuOwner;
+            public IntPtr hwndMoveSize;
+            public IntPtr hwndCaret;
+            public RECT rcCaret;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -122,6 +151,22 @@ namespace Ule4Jis.Net
 
         [DllImport("user32.dll")]
         public static extern short GetKeyState(int nVirtKey);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetGUIThreadInfo(uint idThread, ref GUITHREADINFO lpgti);
+
+        [DllImport("imm32.dll")]
+        public static extern IntPtr ImmGetDefaultIMEWnd(IntPtr hWnd);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
         public static void SendKey(byte vkCode, bool isDown, bool isExtended = false)
         {
