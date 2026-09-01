@@ -6,7 +6,7 @@ namespace Ule4Jis.Net
     public enum CapsLockMode
     {
         Disabled,   // 通常の CapsLock として動作
-        ImeToggle   // CapsLock 単体押しで IME トグル切り替え
+        ImeToggle   // CapsLock 単体短押しで IME トグル、長押しで本来の CapsLock
     }
 
     public static class AltImeSwitcher
@@ -19,11 +19,14 @@ namespace Ule4Jis.Net
 
         private static bool _capsDown = false;
         private static bool _capsCombo = false;
+        private static long _capsDownTime = 0;
+
+        private const long LongPressThresholdMs = 500; // 500ms 以上で長押し判定
 
         public static CapsLockMode CurrentCapsLockMode { get; set; } = CapsLockMode.ImeToggle;
 
         /// <summary>
-        /// 低レベルキーボードフックからのイベントを処理し、Alt単押しでのIME切替および無変換処理を行う。
+        /// 低レベルキーボードフックからのイベントを処理し、Alt単押しでのIME切替およびCapsLock長押し処理を行う。
         /// </summary>
         public static bool ProcessKeyEvent(uint vkCode, uint flags, int msg)
         {
@@ -53,17 +56,20 @@ namespace Ule4Jis.Net
                 }
                 else if (isCapsLock && CurrentCapsLockMode == CapsLockMode.ImeToggle)
                 {
-                    _capsDown = true;
-                    _capsCombo = false;
-                    return true;
+                    if (!_capsDown)
+                    {
+                        _capsDown = true;
+                        _capsCombo = false;
+                        _capsDownTime = Environment.TickCount64;
+                    }
+                    return true; // CapsLock KeyDownを即座に消費
                 }
                 else if (!IsModifierKey(vkCode))
                 {
-                    // 通常キーが押された場合、Altコンボ（Alt+Tabなど）が発生したと判定
+                    // 通常キーが押された場合、Alt/CapsLockコンボが発生したと判定
                     if (_leftAltDown && !_leftAltCombo)
                     {
                         _leftAltCombo = true;
-                        // ショートカットキーのために抑止していた Alt Down を遅延送信
                         NativeMethods.EmulateKey(NativeMethods.VK_LMENU, up: false);
                     }
                     if (_rightAltDown && !_rightAltCombo)
@@ -71,7 +77,10 @@ namespace Ule4Jis.Net
                         _rightAltCombo = true;
                         NativeMethods.EmulateKey(NativeMethods.VK_RMENU, up: false);
                     }
-                    if (_capsDown) _capsCombo = true;
+                    if (_capsDown)
+                    {
+                        _capsCombo = true;
+                    }
                 }
             }
             else if (isUp)
@@ -93,7 +102,6 @@ namespace Ule4Jis.Net
                     }
                     else if (wasCombo)
                     {
-                        // コンボ入力だった場合は遅延していた Alt Up を送信
                         NativeMethods.EmulateKey(NativeMethods.VK_LMENU, up: true);
                     }
 
@@ -120,15 +128,29 @@ namespace Ule4Jis.Net
                 }
                 else if (isCapsLock && CurrentCapsLockMode == CapsLockMode.ImeToggle)
                 {
-                    bool shouldToggle = _capsDown && !_capsCombo;
+                    bool wasDown = _capsDown;
+                    bool wasCombo = _capsCombo;
+                    long duration = Environment.TickCount64 - _capsDownTime;
+
                     _capsDown = false;
                     _capsCombo = false;
 
-                    if (shouldToggle)
+                    if (wasDown && !wasCombo)
                     {
-                        ToggleImeStatus();
-                        return true;
+                        if (duration >= LongPressThresholdMs)
+                        {
+                            // 500ms 以上の長押し -> 本来の CapsLock 機能 (大文字固定 ON/OFF) を送信
+                            NativeMethods.EmulateKey(NativeMethods.VK_CAPITAL, up: false);
+                            NativeMethods.EmulateKey(NativeMethods.VK_CAPITAL, up: true);
+                        }
+                        else
+                        {
+                            // 短押し -> IME トグル切り替え
+                            ToggleImeStatus();
+                        }
                     }
+
+                    return true;
                 }
             }
 
