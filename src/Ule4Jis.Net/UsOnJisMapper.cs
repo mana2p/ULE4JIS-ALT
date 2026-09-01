@@ -125,32 +125,7 @@ namespace Ule4Jis.Net
 
         public static void SendEmulatedKey(byte targetVkCode, ShiftAction shiftAction, bool isDown)
         {
-            bool physShiftPressed = NativeMethods.IsShiftPressed();
-
-            // Shift状態の調整が必要な場合
-            if (shiftAction == ShiftAction.ReleaseShift && physShiftPressed)
-            {
-                // Shiftを一時解除
-                NativeMethods.SendKey(NativeMethods.VK_LSHIFT, false);
-            }
-            else if (shiftAction == ShiftAction.PressShift && !physShiftPressed)
-            {
-                // Shiftを一時押下
-                NativeMethods.SendKey(NativeMethods.VK_LSHIFT, true);
-            }
-
-            // 目的のキーを送信
-            NativeMethods.SendKey(targetVkCode, isDown);
-
-            // Shift状態の復元
-            if (shiftAction == ShiftAction.ReleaseShift && physShiftPressed)
-            {
-                NativeMethods.SendKey(NativeMethods.VK_LSHIFT, true);
-            }
-            else if (shiftAction == ShiftAction.PressShift && !physShiftPressed)
-            {
-                NativeMethods.SendKey(NativeMethods.VK_LSHIFT, false);
-            }
+            NativeMethods.SendAtomicEmulatedKey(targetVkCode, shiftAction, isDown);
         }
     }
 }

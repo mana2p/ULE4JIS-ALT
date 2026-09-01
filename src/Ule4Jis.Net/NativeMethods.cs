@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace Ule4Jis.Net
@@ -52,6 +53,8 @@ namespace Ule4Jis.Net
         public const uint INPUT_KEYBOARD = 1;
         public const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
         public const uint KEYEVENTF_KEYUP = 0x0200;
+
+        public const IntPtr ExtraInfoMarker = (IntPtr)0x554C4534; // "ULE4" marker
 
         public delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
 
@@ -178,14 +181,16 @@ namespace Ule4Jis.Net
             inputs[0].U.ki.wScan = 0;
             inputs[0].U.ki.dwFlags = (isDown ? 0u : KEYEVENTF_KEYUP) | (isExtended ? KEYEVENTF_EXTENDEDKEY : 0u);
             inputs[0].U.ki.time = 0;
-            inputs[0].U.ki.dwExtraInfo = (IntPtr)0x554C4534; // "ULE4" marker
+            inputs[0].U.ki.dwExtraInfo = ExtraInfoMarker;
 
             SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
         }
 
         public static bool IsShiftPressed()
         {
-            return (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+            return (GetKeyState(VK_SHIFT) & 0x8000) != 0 ||
+                   (GetKeyState(VK_LSHIFT) & 0x8000) != 0 ||
+                   (GetKeyState(VK_RSHIFT) & 0x8000) != 0;
         }
 
         public static bool IsCapsLockOn()
@@ -197,10 +202,106 @@ namespace Ule4Jis.Net
         {
             if (IsCapsLockOn())
             {
-                // CapsLockをトグルして消灯させる
                 SendKey(VK_CAPITAL, true);
                 SendKey(VK_CAPITAL, false);
             }
+        }
+
+        public static void SendAtomicEmulatedKey(byte targetVkCode, ShiftAction shiftAction, bool isDown)
+        {
+            bool physShiftPressed = IsShiftPressed();
+            List<INPUT> inputList = new List<INPUT>();
+
+            // Shiftの状態調整が必要な場合、1つのSendInputバッファにまとめる
+            if (shiftAction == ShiftAction.ReleaseShift && physShiftPressed)
+            {
+                INPUT shiftUp = new INPUT
+                {
+                    type = INPUT_KEYBOARD,
+                    U = new INPUTUNION
+                    {
+                        ki = new KEYBDINPUT
+                        {
+                            wVk = VK_LSHIFT,
+                            dwFlags = KEYEVENTF_KEYUP,
+                            dwExtraInfo = ExtraInfoMarker
+                        }
+                    }
+                };
+                inputList.Add(shiftUp);
+            }
+            else if (shiftAction == ShiftAction.PressShift && !physShiftPressed)
+            {
+                INPUT shiftDown = new INPUT
+                {
+                    type = INPUT_KEYBOARD,
+                    U = new INPUTUNION
+                    {
+                        ki = new KEYBDINPUT
+                        {
+                            wVk = VK_LSHIFT,
+                            dwFlags = 0,
+                            dwExtraInfo = ExtraInfoMarker
+                        }
+                    }
+                };
+                inputList.Add(shiftDown);
+            }
+
+            // ターゲットキー
+            INPUT targetKey = new INPUT
+            {
+                type = INPUT_KEYBOARD,
+                U = new INPUTUNION
+                {
+                    ki = new KEYBDINPUT
+                    {
+                        wVk = targetVkCode,
+                        dwFlags = isDown ? 0u : KEYEVENTF_KEYUP,
+                        dwExtraInfo = ExtraInfoMarker
+                    }
+                }
+            };
+            inputList.Add(targetKey);
+
+            // Shift状態の復元
+            if (shiftAction == ShiftAction.ReleaseShift && physShiftPressed)
+            {
+                INPUT shiftRestoreDown = new INPUT
+                {
+                    type = INPUT_KEYBOARD,
+                    U = new INPUTUNION
+                    {
+                        ki = new KEYBDINPUT
+                        {
+                            wVk = VK_LSHIFT,
+                            dwFlags = 0,
+                            dwExtraInfo = ExtraInfoMarker
+                        }
+                    }
+                };
+                inputList.Add(shiftRestoreDown);
+            }
+            else if (shiftAction == ShiftAction.PressShift && !physShiftPressed)
+            {
+                INPUT shiftRestoreUp = new INPUT
+                {
+                    type = INPUT_KEYBOARD,
+                    U = new INPUTUNION
+                    {
+                        ki = new KEYBDINPUT
+                        {
+                            wVk = VK_LSHIFT,
+                            dwFlags = KEYEVENTF_KEYUP,
+                            dwExtraInfo = ExtraInfoMarker
+                        }
+                    }
+                };
+                inputList.Add(shiftRestoreUp);
+            }
+
+            INPUT[] inputs = inputList.ToArray();
+            SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
         }
     }
 }
