@@ -45,7 +45,7 @@ namespace Ule4Jis.Net
                 int msg = (int)wParam;
                 NativeMethods.KBDLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<NativeMethods.KBDLLHOOKSTRUCT>(lParam);
 
-                // 自身がSendInputで送ったキーイベント（dwExtraInfo == 0x554C4534）はそのまま通す
+                // 自身がSendInputで送ったキーイベント（dwExtraInfo == ExtraInfoMarker）はそのまま通す
                 if (hookStruct.dwExtraInfo == NativeMethods.ExtraInfoMarker)
                 {
                     return NativeMethods.CallNextHookEx(_hookID, nCode, wParam, lParam);
@@ -68,11 +68,15 @@ namespace Ule4Jis.Net
                 if (EmulationEnabled)
                 {
                     bool isShift = NativeMethods.IsShiftPressed();
-                    if (UsOnJisMapper.TryMapKey(vkCode, isShift, out var result) && result != null)
+                    if (UsOnJisMapper.TryMapKey(vkCode, isShift, out var result))
                     {
-                        // 元の入力キーを打ち消して、アトミックにエミュレートキーを送信
-                        UsOnJisMapper.SendEmulatedKey(result.TargetVkCode, result.ShiftAction, isDown);
-                        return (IntPtr)1; // 元のイベントを消費
+                        if (result != null)
+                        {
+                            // マッピング結果あり → エミュレートキーを送信
+                            UsOnJisMapper.SendEmulatedKey(result, isDown);
+                        }
+                        // result == null の場合は NOP（元キーを消費して何もしない）
+                        return (IntPtr)1;
                     }
                 }
             }

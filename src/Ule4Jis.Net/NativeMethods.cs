@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace Ule4Jis.Net
@@ -173,6 +172,10 @@ namespace Ule4Jis.Net
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
+        /// <summary>
+        /// オリジナルC++の keybd_event(vkey, 0, flags, (ULONG_PTR)this) と同等。
+        /// dwExtraInfoにマーカーを設定して自分のSendInputを識別可能にする。
+        /// </summary>
         public static void SendKey(byte vkCode, bool isDown, bool isExtended = false)
         {
             INPUT[] inputs = new INPUT[1];
@@ -205,103 +208,6 @@ namespace Ule4Jis.Net
                 SendKey(VK_CAPITAL, true);
                 SendKey(VK_CAPITAL, false);
             }
-        }
-
-        public static void SendAtomicEmulatedKey(byte targetVkCode, ShiftAction shiftAction, bool isDown)
-        {
-            bool physShiftPressed = IsShiftPressed();
-            List<INPUT> inputList = new List<INPUT>();
-
-            // Shiftの状態調整が必要な場合、1つのSendInputバッファにまとめる
-            if (shiftAction == ShiftAction.ReleaseShift && physShiftPressed)
-            {
-                INPUT shiftUp = new INPUT
-                {
-                    type = INPUT_KEYBOARD,
-                    U = new INPUTUNION
-                    {
-                        ki = new KEYBDINPUT
-                        {
-                            wVk = VK_LSHIFT,
-                            dwFlags = KEYEVENTF_KEYUP,
-                            dwExtraInfo = ExtraInfoMarker
-                        }
-                    }
-                };
-                inputList.Add(shiftUp);
-            }
-            else if (shiftAction == ShiftAction.PressShift && !physShiftPressed)
-            {
-                INPUT shiftDown = new INPUT
-                {
-                    type = INPUT_KEYBOARD,
-                    U = new INPUTUNION
-                    {
-                        ki = new KEYBDINPUT
-                        {
-                            wVk = VK_LSHIFT,
-                            dwFlags = 0,
-                            dwExtraInfo = ExtraInfoMarker
-                        }
-                    }
-                };
-                inputList.Add(shiftDown);
-            }
-
-            // ターゲットキー
-            INPUT targetKey = new INPUT
-            {
-                type = INPUT_KEYBOARD,
-                U = new INPUTUNION
-                {
-                    ki = new KEYBDINPUT
-                    {
-                        wVk = targetVkCode,
-                        dwFlags = isDown ? 0u : KEYEVENTF_KEYUP,
-                        dwExtraInfo = ExtraInfoMarker
-                    }
-                }
-            };
-            inputList.Add(targetKey);
-
-            // Shift状態の復元
-            if (shiftAction == ShiftAction.ReleaseShift && physShiftPressed)
-            {
-                INPUT shiftRestoreDown = new INPUT
-                {
-                    type = INPUT_KEYBOARD,
-                    U = new INPUTUNION
-                    {
-                        ki = new KEYBDINPUT
-                        {
-                            wVk = VK_LSHIFT,
-                            dwFlags = 0,
-                            dwExtraInfo = ExtraInfoMarker
-                        }
-                    }
-                };
-                inputList.Add(shiftRestoreDown);
-            }
-            else if (shiftAction == ShiftAction.PressShift && !physShiftPressed)
-            {
-                INPUT shiftRestoreUp = new INPUT
-                {
-                    type = INPUT_KEYBOARD,
-                    U = new INPUTUNION
-                    {
-                        ki = new KEYBDINPUT
-                        {
-                            wVk = VK_LSHIFT,
-                            dwFlags = KEYEVENTF_KEYUP,
-                            dwExtraInfo = ExtraInfoMarker
-                        }
-                    }
-                };
-                inputList.Add(shiftRestoreUp);
-            }
-
-            INPUT[] inputs = inputList.ToArray();
-            SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
         }
     }
 }
