@@ -27,7 +27,7 @@ namespace Ule4Jis.Net
             bool isDown = (msg == NativeMethods.WM_KEYDOWN || msg == NativeMethods.WM_SYSKEYDOWN);
             bool isUp = (msg == NativeMethods.WM_KEYUP || msg == NativeMethods.WM_SYSKEYUP);
 
-            bool isExtended = (flags & 1) != 0;
+            bool isExtended = (flags & NativeMethods.KEYEVENTF_EXTENDEDKEY) != 0 || (flags & 1) != 0;
             bool isLeftAlt = (vkCode == NativeMethods.VK_LMENU) || (vkCode == NativeMethods.VK_MENU && !isExtended);
             bool isRightAlt = (vkCode == NativeMethods.VK_RMENU) || (vkCode == NativeMethods.VK_MENU && isExtended);
             bool isCapsLock = (vkCode == NativeMethods.VK_CAPITAL);
@@ -51,7 +51,7 @@ namespace Ule4Jis.Net
                 }
                 else if (!IsModifierKey(vkCode))
                 {
-                    // 修飾キー以外の通常キーが押された場合のみ、コンボと判定
+                    // 修飾キー以外の通常キーが押された場合のみ、コンボ（Alt+Tab等）と判定
                     if (_leftAltDown) _leftAltCombo = true;
                     if (_rightAltDown) _rightAltCombo = true;
                     if (_capsDown) _capsCombo = true;
@@ -67,9 +67,12 @@ namespace Ule4Jis.Net
 
                     if (shouldToggle)
                     {
+                        // メニューバーのアクティブ化（文字の自動確定）を防ぐためダミーキー(0xFF)を送信
+                        SuppressMenuFocus();
+
                         // 未確定文字列がある状態（文字入力中） -> 無変換キー (VK_NONCONVERT = カタカナ変換)
-                        // 未確定文字列がない状態（何も入力していない状態） -> IME OFF (英数)
-                        if (GetImeStatus() && HasCompositionString())
+                        // 未確定文字列がない状態 -> IME OFF (英数)
+                        if (HasCompositionString())
                         {
                             NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: false);
                             NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: true);
@@ -88,6 +91,9 @@ namespace Ule4Jis.Net
 
                     if (shouldToggle)
                     {
+                        // メニューバーのアクティブ化を防ぐためダミーキー(0xFF)を送信
+                        SuppressMenuFocus();
+
                         // 右Alt空打ち -> IME ON (かな)
                         SetImeStatus(true);
                     }
@@ -114,6 +120,15 @@ namespace Ule4Jis.Net
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Alt単打ち時にWindowsのメニューバーがアクティブになり未確定文字列が確定してしまうのを防ぐダミーキー送信
+        /// </summary>
+        private static void SuppressMenuFocus()
+        {
+            NativeMethods.EmulateKey(0xFF, up: false);
+            NativeMethods.EmulateKey(0xFF, up: true);
         }
 
         private static bool IsModifierKey(uint vkCode)
@@ -225,10 +240,33 @@ namespace Ule4Jis.Net
                 }
             }
 
-            // 2. VK_IME_ON / VK_IME_OFF キー送信 (バックアップ)
-            byte vk = enable ? NativeMethods.VK_IME_ON : NativeMethods.VK_IME_OFF;
-            NativeMethods.EmulateKey(vk, up: false);
-            NativeMethods.EmulateKey(vk, up: true);
+            // 2. メッセージ送信後も状態が一致しない場合の強力なキー補填
+            bool currentStatus = GetImeStatus();
+            if (enable && !currentStatus)
+            {
+                // IMEをONにしたいのにまだOFFの場合 -> VK_KANJI / VK_IME_ON 送信
+                NativeMethods.EmulateKey(NativeMethods.VK_IME_ON, up: false);
+                NativeMethods.EmulateKey(NativeMethods.VK_IME_ON, up: true);
+                
+                // 再確認してだめなら VK_KANJI
+                if (!GetImeStatus())
+                {
+                    NativeMethods.EmulateKey(NativeMethods.VK_KANJI, up: false);
+                    NativeMethods.EmulateKey(NativeMethods.VK_KANJI, up: true);
+                }
+            }
+            else if (!enable && currentStatus)
+            {
+                // IMEをOFFにしたいのにまだONの場合 -> VK_IME_OFF / VK_KANJI 送信
+                NativeMethods.EmulateKey(NativeMethods.VK_IME_OFF, up: false);
+                NativeMethods.EmulateKey(NativeMethods.VK_IME_OFF, up: true);
+
+                if (GetImeStatus())
+                {
+                    NativeMethods.EmulateKey(NativeMethods.VK_KANJI, up: false);
+                    NativeMethods.EmulateKey(NativeMethods.VK_KANJI, up: true);
+                }
+            }
         }
     }
 }
