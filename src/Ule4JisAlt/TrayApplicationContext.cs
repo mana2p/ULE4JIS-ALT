@@ -95,7 +95,7 @@ namespace Ule4Jis.Net
 
         private void OnCheckDevice(object? sender, EventArgs e)
         {
-            string deviceType = RawInputReceiver.IsLastInputFromExternal ? "外付けキーボード (US配列と判定 -> US変換をスキップ)" : "ノートPC内蔵キーボード (JIS配列と判定 -> US変換を適用)";
+            string deviceType = RawInputReceiver.IsLastInputFromExternal ? "外付け英語キーボード (US配列と判定 -> US変換を適用)" : "ノートPC内蔵キーボード (JIS配列と判定 -> 変換せずスルー)";
             string path = string.IsNullOrEmpty(RawInputReceiver.LastDevicePath) ? "(まだキーが入力されていません。キーを押してから再度ご確認ください)" : RawInputReceiver.LastDevicePath;
 
             MessageBox.Show($"【直近入力されたキーボード情報】\n\n■ 判定結果: {deviceType}\n\n■ デバイスパス:\n{path}", "ULE4JIS-ALT デバイス判定状態", MessageBoxButtons.OK, MessageBoxIcon.Information);
