@@ -38,15 +38,14 @@ namespace Ule4Jis.Net
                 {
                     _leftAltDown = true;
                     _leftAltCombo = false;
-                    // 左AltのKeyDownをOSに渡さない（フック消費）。
-                    // これによりOSのメニューバー起動や未確定文字の自動確定を完全に阻止！
+                    // 左Alt KeyDownをフック消費（OSのメニューバー起動や自動確定を防止）
                     return true;
                 }
                 else if (isRightAlt)
                 {
                     _rightAltDown = true;
                     _rightAltCombo = false;
-                    // 右AltのKeyDownもフック消費
+                    // 右Alt KeyDownをフック消費
                     return true;
                 }
                 else if (isCapsLock && CurrentCapsLockMode == CapsLockMode.ImeToggle)
@@ -89,19 +88,10 @@ namespace Ule4Jis.Net
 
                     if (wasDown && !wasCombo)
                     {
-                        // 左Altの単体空打ち
-                        // IMEがONで、かつ入力中の未確定文字列がある場合（またはIME ON時）
-                        if (GetImeStatus() && HasCompositionString())
-                        {
-                            // 未確定文字を入力中 -> 無変換キー (VK_NONCONVERT = カタカナ変換) 送信！
-                            NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: false);
-                            NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: true);
-                        }
-                        else
-                        {
-                            // 未確定文字がない状態 -> IME OFF (英数)
-                            SetImeStatus(false);
-                        }
+                        // 左Altの単体空打ち:
+                        // 無変換キー (0x8B / VK_NONCONVERT 0x1D) を直接送信！
+                        // WindowsのIME自身が「入力中ならカタカナ変換」「未入力なら英数/IME OFF」をネイティブ処理します。
+                        SendNonConvertKey();
                     }
                     else if (wasCombo)
                     {
@@ -109,7 +99,7 @@ namespace Ule4Jis.Net
                         NativeMethods.EmulateKey(NativeMethods.VK_LMENU, up: true);
                     }
 
-                    return true; // 左Alt Upイベントをフック消費
+                    return true;
                 }
                 else if (isRightAlt)
                 {
@@ -128,7 +118,7 @@ namespace Ule4Jis.Net
                         NativeMethods.EmulateKey(NativeMethods.VK_RMENU, up: true);
                     }
 
-                    return true; // 右Alt Upイベントをフック消費
+                    return true;
                 }
                 else if (isCapsLock && CurrentCapsLockMode == CapsLockMode.ImeToggle)
                 {
@@ -152,6 +142,20 @@ namespace Ule4Jis.Net
             return false;
         }
 
+        /// <summary>
+        /// 無変換キー (0x8B / VK_NONCONVERT 0x1D) を送信する。
+        /// </summary>
+        private static void SendNonConvertKey()
+        {
+            // 0x8B (VK_OEM_AUTO / 無変換)
+            NativeMethods.EmulateKey(0x8B, up: false);
+            NativeMethods.EmulateKey(0x8B, up: true);
+
+            // VK_NONCONVERT (0x1D)
+            NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: false);
+            NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: true);
+        }
+
         private static bool IsModifierKey(uint vkCode)
         {
             return vkCode == NativeMethods.VK_SHIFT ||
@@ -166,45 +170,6 @@ namespace Ule4Jis.Net
                    vkCode == NativeMethods.VK_CAPITAL ||
                    vkCode == 0x5B || // Left Windows Key
                    vkCode == 0x5C;   // Right Windows Key
-        }
-
-        /// <summary>
-        /// 現在アクティブな入力フォーカスで未確定文字列（IME Composition String）が存在するかどうか判定する
-        /// </summary>
-        public static bool HasCompositionString()
-        {
-            IntPtr fgWnd = NativeMethods.GetForegroundWindow();
-            if (fgWnd == IntPtr.Zero) return false;
-
-            uint threadId = NativeMethods.GetWindowThreadProcessId(fgWnd, out _);
-            IntPtr targetWnd = fgWnd;
-
-            NativeMethods.GUITHREADINFO gti = new NativeMethods.GUITHREADINFO();
-            gti.cbSize = Marshal.SizeOf(typeof(NativeMethods.GUITHREADINFO));
-            if (NativeMethods.GetGUIThreadInfo(threadId, ref gti) && gti.hwndFocus != IntPtr.Zero)
-            {
-                targetWnd = gti.hwndFocus;
-            }
-
-            IntPtr hIMC = NativeMethods.ImmGetContext(targetWnd);
-            if (hIMC != IntPtr.Zero)
-            {
-                try
-                {
-                    int len = NativeMethods.ImmGetCompositionString(hIMC, NativeMethods.GCS_COMPSTR, null, 0);
-                    return len > 0;
-                }
-                catch
-                {
-                    // 無視
-                }
-                finally
-                {
-                    NativeMethods.ImmReleaseContext(targetWnd, hIMC);
-                }
-            }
-
-            return false;
         }
 
         public static bool GetImeStatus()
