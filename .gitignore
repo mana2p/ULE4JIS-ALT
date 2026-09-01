@@ -9,6 +9,9 @@
 *.userprefs
 *.pidb
 
+## AI Agent Scratch / Skill Docs
+docs/
+
 ## Exception: Keep root publish directory for direct release download
 !/publish/
 !/publish/**
