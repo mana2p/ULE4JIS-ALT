@@ -9,11 +9,6 @@ namespace Ule4Jis.Net
         ReleaseShift     // Shiftを離して送信
     }
 
-    /// <summary>
-    /// 半角全角キーの特殊動作を表すフラグ。
-    /// オリジナルC++の PressAndReleaseDecorator に相当。
-    /// Down/Up 両方で「Press→Release」をセットで送信する。
-    /// </summary>
     public enum EmulationMode
     {
         Normal,          // 通常: KeyDown→送Down, KeyUp→送Up
@@ -38,7 +33,7 @@ namespace Ule4Jis.Net
     {
         /// <summary>
         /// JIS配列のVKコード+Shift状態を、US配列で期待される出力に変換するためのマッピングを返す。
-        /// オリジナルC++版 USonJISStrategy.cpp のマッピングテーブルと完全一致。
+        /// オリジナルC++ USonJISStrategy.cpp のマッピングテーブルと完全一致。
         /// </summary>
         public static bool TryMapKey(uint vkCode, bool isShift, out KeyEmulationResult? result)
         {
@@ -101,13 +96,11 @@ namespace Ule4Jis.Net
                         return true;
 
                     // ~ (Shift+半角全角)
-                    case NativeMethods.VK_OEM_AUTO: // VK_OEM_AUTO: NOP (無視)
+                    case NativeMethods.VK_OEM_AUTO:
                         result = null;
-                        return true; // handled = true だが result=null → 元キーを消費して何もしない
+                        return true; // NOP
 
-                    case NativeMethods.VK_OEM_ENLW: // VK_OEM_ENLW: PressAndRelease(Normal(VK_OEM_7))
-                        // オリジナル: PressAndRelease(ShiftRelease不要、Shift維持のまま VK_OEM_7)
-                        // JIS: Shift+VK_OEM_7 = ~ (チルダ) ← USの~と同じ
+                    case NativeMethods.VK_OEM_ENLW:
                         result = new KeyEmulationResult(NativeMethods.VK_OEM_7, ShiftAction.KeepState, EmulationMode.PressAndRelease);
                         return true;
                 }
@@ -137,12 +130,11 @@ namespace Ule4Jis.Net
                         return true;
 
                     // ` (半角全角キー)
-                    case NativeMethods.VK_OEM_AUTO: // VK_OEM_AUTO: NOP (無視)
+                    case NativeMethods.VK_OEM_AUTO:
                         result = null;
-                        return true; // handled = true だが result=null → 元キーを消費して何もしない
+                        return true; // NOP
 
-                    case NativeMethods.VK_OEM_ENLW: // VK_OEM_ENLW: PressAndRelease(ShiftPress(Normal(VK_OEM_3)))
-                        // JIS: Shift+VK_OEM_3 = ` (バッククオート) ← USの`と同じ
+                    case NativeMethods.VK_OEM_ENLW:
                         result = new KeyEmulationResult(NativeMethods.VK_OEM_3, ShiftAction.PressShift, EmulationMode.PressAndRelease);
                         return true;
                 }
@@ -153,64 +145,63 @@ namespace Ule4Jis.Net
 
         /// <summary>
         /// エミュレートされたキーを送信する。
-        /// オリジナルC++版の設計に忠実に：
-        /// - Shift操作 (ShiftRelease/ShiftPress) は KeyDown時のみ実行
-        /// - KeyUp時は素のキーUpだけ送信（Shift操作なし）
-        /// - PressAndReleaseモードでは Down+Up をセットで送信
+        /// オリジナルC++の ShiftReleaseDecorator / ShiftPressDecorator / PressAndReleaseDecorator と同等。
+        /// 
+        /// 重要: Shift操作は KeyDown (isUp=false) 時のみ実行。
+        ///        KeyUp (isUp=true) 時は素のキーUpだけ送信。
         /// </summary>
-        public static void SendEmulatedKey(KeyEmulationResult result, bool isDown)
+        public static void SendEmulatedKey(KeyEmulationResult result, bool isUp)
         {
             if (result.Mode == EmulationMode.PressAndRelease)
             {
-                // PressAndReleaseDecorator: Down/Up両方で Down+Up をフルセット送信
-                SendKeyWithShiftAction(result.TargetVkCode, result.ShiftAction, isDown: true);
-                NativeMethods.SendKey(result.TargetVkCode, isDown: false);
+                // PressAndReleaseDecorator: Down/Up両方で Down+Up フルセット送信
+                ExecuteWithShiftAction(result.TargetVkCode, result.ShiftAction, up: false);
+                NativeMethods.EmulateKey(result.TargetVkCode, up: true);
             }
-            else if (isDown)
+            else if (!isUp)
             {
                 // KeyDown: Shift操作付きでキーDown送信
-                SendKeyWithShiftAction(result.TargetVkCode, result.ShiftAction, isDown: true);
+                ExecuteWithShiftAction(result.TargetVkCode, result.ShiftAction, up: false);
             }
             else
             {
                 // KeyUp: Shift操作なし、素のキーUpだけ送信
-                NativeMethods.SendKey(result.TargetVkCode, isDown: false);
+                NativeMethods.EmulateKey(result.TargetVkCode, up: true);
             }
         }
 
         /// <summary>
-        /// Shift操作付きでキーを送信する（KeyDown時のみ使用）。
-        /// オリジナルC++版のShiftReleaseDecorator/ShiftPressDecoratorと同じ動作。
+        /// Shift操作付きでキーを送信する。
+        /// オリジナルC++の ShiftReleaseDecorator::executeDown / ShiftPressDecorator::executeDown と同一動作。
         /// </summary>
-        private static void SendKeyWithShiftAction(byte targetVkCode, ShiftAction shiftAction, bool isDown)
+        private static void ExecuteWithShiftAction(byte targetVkCode, ShiftAction shiftAction, bool up)
         {
             if (shiftAction == ShiftAction.ReleaseShift)
             {
-                // ShiftReleaseDecorator相当:
-                // 左右Shiftの実際の状態を取得して、押されている側を解除→キー送信→復元
+                // ShiftReleaseDecorator::executeDown 完全再現:
+                // 実際に押されている左右Shiftをそれぞれ解除→キー送信→復元
                 bool lshift = (NativeMethods.GetKeyState(NativeMethods.VK_LSHIFT) & 0x8000) != 0;
                 bool rshift = (NativeMethods.GetKeyState(NativeMethods.VK_RSHIFT) & 0x8000) != 0;
 
-                if (lshift) NativeMethods.SendKey(NativeMethods.VK_LSHIFT, isDown: false);
-                if (rshift) NativeMethods.SendKey(NativeMethods.VK_RSHIFT, isDown: false);
+                if (lshift) NativeMethods.EmulateKey(NativeMethods.VK_LSHIFT, up: true);
+                if (rshift) NativeMethods.EmulateKey(NativeMethods.VK_RSHIFT, up: true);
 
-                NativeMethods.SendKey(targetVkCode, isDown);
+                NativeMethods.EmulateKey(targetVkCode, up);
 
-                if (lshift) NativeMethods.SendKey(NativeMethods.VK_LSHIFT, isDown: true);
-                if (rshift) NativeMethods.SendKey(NativeMethods.VK_RSHIFT, isDown: true);
+                if (lshift) NativeMethods.EmulateKey(NativeMethods.VK_LSHIFT, up: false);
+                if (rshift) NativeMethods.EmulateKey(NativeMethods.VK_RSHIFT, up: false);
             }
             else if (shiftAction == ShiftAction.PressShift)
             {
-                // ShiftPressDecorator相当:
-                // LShiftを押す→キー送信→LShiftを離す
-                NativeMethods.SendKey(NativeMethods.VK_LSHIFT, isDown: true);
-                NativeMethods.SendKey(targetVkCode, isDown);
-                NativeMethods.SendKey(NativeMethods.VK_LSHIFT, isDown: false);
+                // ShiftPressDecorator::executeDown 完全再現:
+                NativeMethods.EmulateKey(NativeMethods.VK_LSHIFT, up: false);
+                NativeMethods.EmulateKey(targetVkCode, up);
+                NativeMethods.EmulateKey(NativeMethods.VK_LSHIFT, up: true);
             }
             else
             {
                 // KeepState: そのままキー送信
-                NativeMethods.SendKey(targetVkCode, isDown);
+                NativeMethods.EmulateKey(targetVkCode, up);
             }
         }
     }

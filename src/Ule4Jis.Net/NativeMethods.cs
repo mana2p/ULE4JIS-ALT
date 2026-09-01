@@ -49,11 +49,12 @@ namespace Ule4Jis.Net
         public const byte VK_OEM_ENLW = 0xF3; // 半角/全角
         public const byte VK_OEM_AUTO = 0xF4; // 半角/全角
 
-        public const uint INPUT_KEYBOARD = 1;
         public const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
-        public const uint KEYEVENTF_KEYUP = 0x0200;
+        public const uint KEYEVENTF_KEYUP = 0x0002;
 
-        public const IntPtr ExtraInfoMarker = (IntPtr)0x554C4534; // "ULE4" marker
+        // オリジナルC++と同じマーカー値。
+        // keybd_event の dwExtraInfo に設定し、フック側で自分が送ったイベントかどうか識別する。
+        public static readonly UIntPtr EmulatorMarker = new UIntPtr(0x554C4534); // "ULE4"
 
         public delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
 
@@ -64,7 +65,7 @@ namespace Ule4Jis.Net
             public uint scanCode;
             public uint flags;
             public uint time;
-            public IntPtr dwExtraInfo;
+            public UIntPtr dwExtraInfo;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -90,53 +91,6 @@ namespace Ule4Jis.Net
             public RECT rcCaret;
         }
 
-        [StructLayout(LayoutKind.Sequential)]
-        public struct MOUSEINPUT
-        {
-            public int dx;
-            public int dy;
-            public uint mouseData;
-            public uint dwFlags;
-            public uint time;
-            public IntPtr dwExtraInfo;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct KEYBDINPUT
-        {
-            public ushort wVk;
-            public ushort wScan;
-            public uint dwFlags;
-            public uint time;
-            public IntPtr dwExtraInfo;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct HARDWAREINPUT
-        {
-            public uint uMsg;
-            public ushort wParamL;
-            public ushort wParamH;
-        }
-
-        [StructLayout(LayoutKind.Explicit)]
-        public struct INPUTUNION
-        {
-            [FieldOffset(0)]
-            public MOUSEINPUT mi;
-            [FieldOffset(0)]
-            public KEYBDINPUT ki;
-            [FieldOffset(0)]
-            public HARDWAREINPUT hi;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct INPUT
-        {
-            public uint type;
-            public INPUTUNION U;
-        }
-
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern IntPtr SetWindowsHookEx(int idHook, HookProc lpfn, IntPtr hMod, uint dwThreadId);
 
@@ -150,8 +104,12 @@ namespace Ule4Jis.Net
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern IntPtr GetModuleHandle(string? lpModuleName);
 
-        [DllImport("user32.dll", SetLastError = true)]
-        public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+        /// <summary>
+        /// オリジナルC++と同じ keybd_event API を使用。
+        /// SendInput よりシンプルで、dwExtraInfo の受け渡しに構造体マーシャリングの問題がない。
+        /// </summary>
+        [DllImport("user32.dll")]
+        public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 
         [DllImport("user32.dll")]
         public static extern short GetKeyState(int nVirtKey);
@@ -173,20 +131,49 @@ namespace Ule4Jis.Net
         public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
         /// <summary>
-        /// オリジナルC++の keybd_event(vkey, 0, flags, (ULONG_PTR)this) と同等。
-        /// dwExtraInfoにマーカーを設定して自分のSendInputを識別可能にする。
+        /// オリジナルC++の emulateKey() と完全に同じ実装:
+        ///   keybd_event(vkey, 0, flags, (ULONG_PTR)this);
+        /// 拡張キーの判定もオリジナルと同一ロジック。
         /// </summary>
-        public static void SendKey(byte vkCode, bool isDown, bool isExtended = false)
+        public static void EmulateKey(byte vkCode, bool up)
         {
-            INPUT[] inputs = new INPUT[1];
-            inputs[0].type = INPUT_KEYBOARD;
-            inputs[0].U.ki.wVk = vkCode;
-            inputs[0].U.ki.wScan = 0;
-            inputs[0].U.ki.dwFlags = (isDown ? 0u : KEYEVENTF_KEYUP) | (isExtended ? KEYEVENTF_EXTENDEDKEY : 0u);
-            inputs[0].U.ki.time = 0;
-            inputs[0].U.ki.dwExtraInfo = ExtraInfoMarker;
+            uint flags = up ? KEYEVENTF_KEYUP : 0;
+            if (IsExtendedKey(vkCode))
+            {
+                flags |= KEYEVENTF_EXTENDEDKEY;
+            }
+            keybd_event(vkCode, 0, flags, EmulatorMarker);
+        }
 
-            SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+        /// <summary>
+        /// オリジナルC++の isExtendedKey() と同一。
+        /// </summary>
+        private static bool IsExtendedKey(byte vkCode)
+        {
+            switch (vkCode)
+            {
+                case VK_RCONTROL:
+                case VK_RMENU:
+                case VK_RSHIFT:
+                case 0x2D: // VK_INSERT
+                case 0x2E: // VK_DELETE
+                case 0x24: // VK_HOME
+                case 0x23: // VK_END
+                case 0x21: // VK_PRIOR (Page Up)
+                case 0x22: // VK_NEXT (Page Down)
+                case 0x26: // VK_UP
+                case 0x28: // VK_DOWN
+                case 0x27: // VK_RIGHT
+                case 0x25: // VK_LEFT
+                case 0x90: // VK_NUMLOCK
+                case 0x03: // VK_CANCEL
+                case 0x2C: // VK_PRINT
+                case 0x6F: // VK_DIVIDE
+                case 0x6C: // VK_SEPARATOR
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         public static bool IsShiftPressed()
@@ -205,8 +192,8 @@ namespace Ule4Jis.Net
         {
             if (IsCapsLockOn())
             {
-                SendKey(VK_CAPITAL, true);
-                SendKey(VK_CAPITAL, false);
+                EmulateKey(VK_CAPITAL, false); // down
+                EmulateKey(VK_CAPITAL, true);  // up
             }
         }
     }

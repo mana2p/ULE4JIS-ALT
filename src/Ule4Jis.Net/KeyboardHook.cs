@@ -45,14 +45,15 @@ namespace Ule4Jis.Net
                 int msg = (int)wParam;
                 NativeMethods.KBDLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<NativeMethods.KBDLLHOOKSTRUCT>(lParam);
 
-                // 自身がSendInputで送ったキーイベント（dwExtraInfo == ExtraInfoMarker）はそのまま通す
-                if (hookStruct.dwExtraInfo == NativeMethods.ExtraInfoMarker)
+                // 自分が keybd_event で送ったイベント（dwExtraInfo == EmulatorMarker）はそのまま通す
+                // オリジナルC++: if (args.getExtraInfo() == (ULONG_PTR)this) return false;
+                if (hookStruct.dwExtraInfo == NativeMethods.EmulatorMarker)
                 {
                     return NativeMethods.CallNextHookEx(_hookID, nCode, wParam, lParam);
                 }
 
                 uint vkCode = hookStruct.vkCode;
-                bool isDown = (msg == NativeMethods.WM_KEYDOWN || msg == NativeMethods.WM_SYSKEYDOWN);
+                bool isUp = (msg == NativeMethods.WM_KEYUP || msg == NativeMethods.WM_SYSKEYUP);
 
                 // 1. Alt-IME / CapsLock 切り替え処理
                 if (AltImeEnabled)
@@ -73,7 +74,7 @@ namespace Ule4Jis.Net
                         if (result != null)
                         {
                             // マッピング結果あり → エミュレートキーを送信
-                            UsOnJisMapper.SendEmulatedKey(result, isDown);
+                            UsOnJisMapper.SendEmulatedKey(result, isUp);
                         }
                         // result == null の場合は NOP（元キーを消費して何もしない）
                         return (IntPtr)1;

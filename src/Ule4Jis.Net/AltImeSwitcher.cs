@@ -179,8 +179,8 @@ namespace Ule4Jis.Net
 
             // 2. VK_IME_ON / VK_IME_OFF キー送信 (バックアップ)
             byte vk = enable ? NativeMethods.VK_IME_ON : NativeMethods.VK_IME_OFF;
-            NativeMethods.SendKey(vk, true);
-            NativeMethods.SendKey(vk, false);
+            NativeMethods.EmulateKey(vk, up: false);
+            NativeMethods.EmulateKey(vk, up: true);
         }
     }
 }
