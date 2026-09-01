@@ -1,17 +1,13 @@
 using System;
 using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace Ule4Jis.Net
 {
-    public enum CapsLockMode
-    {
-        Disabled,   // 無効 (通常の CapsLock として単体押しで大文字固定 ON/OFF 信号を発行)
-        ImeToggle   // IME切り替え (短押しで IME トグル、長押しで本来の CapsLock 信号を発行)
-    }
-
     /// <summary>
-    /// 左右Alt空打ちによるIME切替および CapsLock の Tap-Hold (短押し/長押し) や無効化動作を制御する。
+    /// 左右 Alt キーの空打ちによるスマートな IME 切り替え制御（macOS風）
+    /// - 左 Alt 単体空打ち: VK_NONCONVERT (無変換キー) 送信 -> IME OFF / カタカナ変換
+    /// - 右 Alt 単体空打ち: IME ON (かな) 送信
+    /// - Alt + 他キーの組み合わせ時: 通常の Alt ショートカットとして通過
     /// </summary>
     public static class AltImeSwitcher
     {
@@ -21,14 +17,6 @@ namespace Ule4Jis.Net
         private static bool _rightAltDown = false;
         private static bool _rightAltCombo = false;
 
-        // CapsLock の Tap-Hold 管理
-        private static bool _capsDown = false;
-        private static bool _capsLongPressFired = false;
-        private static System.Threading.Timer? _capsTimer = null;
-        private const int CapsLongPressDelayMs = 300; // 300ms で長押し判定
-
-        public static CapsLockMode CurrentCapsLockMode { get; set; } = CapsLockMode.ImeToggle;
-
         public static bool ProcessKeyEvent(uint vkCode, uint flags, int msg)
         {
             bool isDown = (msg == NativeMethods.WM_KEYDOWN || msg == NativeMethods.WM_SYSKEYDOWN);
@@ -37,75 +25,14 @@ namespace Ule4Jis.Net
             bool isExtended = (flags & NativeMethods.KEYEVENTF_EXTENDEDKEY) != 0 || (flags & 1) != 0;
             bool isLeftAlt = (vkCode == NativeMethods.VK_LMENU) || (vkCode == NativeMethods.VK_MENU && !isExtended);
             bool isRightAlt = (vkCode == NativeMethods.VK_RMENU) || (vkCode == NativeMethods.VK_MENU && isExtended);
-            bool isCapsLock = (vkCode == NativeMethods.VK_CAPITAL);
 
-            // -------------------------------------------------------------
-            // 1. CapsLock キーの処理
-            // -------------------------------------------------------------
-            if (isCapsLock)
-            {
-                if (CurrentCapsLockMode == CapsLockMode.Disabled)
-                {
-                    // 「無効 (通常の CapsLock)」: Windows 11 標準の IME 切替を打ち消し、
-                    //   Shift + CapsLock 信号 (＝本物の大文字固定 CapsLock ON/OFF) を発行
-                    if (isDown)
-                    {
-                        if (!_capsDown)
-                        {
-                            _capsDown = true;
-                            NativeMethods.SendCapsLockSignal();
-                        }
-                    }
-                    else if (isUp)
-                    {
-                        _capsDown = false;
-                    }
-                    return true; // イベントをフック消費
-                }
-                else if (CurrentCapsLockMode == CapsLockMode.ImeToggle)
-                {
-                    // 「有効 (IMEをトグル切り替え)」: 短押しで IME トグル、長押し(300ms)で本物の CapsLock
-                    if (isDown)
-                    {
-                        if (!_capsDown)
-                        {
-                            _capsDown = true;
-                            _capsLongPressFired = false;
-
-                            // 300ms タイマーを開始。離される前にタイマー発火なら「長押し」と判定
-                            _capsTimer?.Dispose();
-                            _capsTimer = new System.Threading.Timer(OnCapsLockLongPressTimer, null, CapsLongPressDelayMs, Timeout.Infinite);
-                        }
-                    }
-                    else if (isUp)
-                    {
-                        _capsTimer?.Dispose();
-                        _capsTimer = null;
-
-                        bool wasDown = _capsDown;
-                        bool alreadyFired = _capsLongPressFired;
-                        _capsDown = false;
-
-                        if (wasDown && !alreadyFired)
-                        {
-                            // 300ms 前に放された -> 「短押し (Tap)」: IME トグル切り替え
-                            ToggleImeStatus();
-                        }
-                    }
-                    return true; // イベントをフック消費
-                }
-            }
-
-            // -------------------------------------------------------------
-            // 2. 左右 Alt 空打ちの処理
-            // -------------------------------------------------------------
             if (isDown)
             {
                 if (isLeftAlt)
                 {
                     _leftAltDown = true;
                     _leftAltCombo = false;
-                    return true; // 左Alt KeyDown をフック消費
+                    return true; // 左Alt KeyDown をフック消費（メニューバー起動防止）
                 }
                 else if (isRightAlt)
                 {
@@ -115,7 +42,7 @@ namespace Ule4Jis.Net
                 }
                 else if (!IsModifierKey(vkCode))
                 {
-                    // 通常キーが押された場合、Altコンボが発生したと判定
+                    // 通常キーが押された場合、Altコンボ（Alt+Tab等）が発生したと判定
                     if (_leftAltDown && !_leftAltCombo)
                     {
                         _leftAltCombo = true;
@@ -139,7 +66,7 @@ namespace Ule4Jis.Net
 
                     if (wasDown && !wasCombo)
                     {
-                        // 左Alt空打ち -> 無変換キー (VK_NONCONVERT = 0x1D)
+                        // 左Alt単体空打ち -> 無変換キー (VK_NONCONVERT = 0x1D)
                         NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: false);
                         NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: true);
                     }
@@ -159,7 +86,7 @@ namespace Ule4Jis.Net
 
                     if (wasDown && !wasCombo)
                     {
-                        // 右Alt空打ち -> IME ON (かな)
+                        // 右Alt単体空打ち -> IME ON (かな)
                         SetImeStatus(true);
                     }
                     else if (wasCombo)
@@ -172,19 +99,6 @@ namespace Ule4Jis.Net
             }
 
             return false;
-        }
-
-        private static void OnCapsLockLongPressTimer(object? state)
-        {
-            if (_capsDown && !_capsLongPressFired)
-            {
-                _capsLongPressFired = true;
-                _capsTimer?.Dispose();
-                _capsTimer = null;
-
-                // 300ms 経過で長押し確定 -> Shift + CapsLock 信号 (＝本物の大文字固定 CapsLock ON/OFF) を発行
-                NativeMethods.SendCapsLockSignal();
-            }
         }
 
         private static bool IsModifierKey(uint vkCode)
@@ -226,12 +140,6 @@ namespace Ule4Jis.Net
             }
 
             return false;
-        }
-
-        public static void ToggleImeStatus()
-        {
-            bool currentStatus = GetImeStatus();
-            SetImeStatus(!currentStatus);
         }
 
         public static void SetImeStatus(bool enable)

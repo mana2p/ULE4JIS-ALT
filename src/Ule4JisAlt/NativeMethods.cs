@@ -1,6 +1,5 @@
 using System;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 
 namespace Ule4Jis.Net
 {
@@ -141,22 +140,6 @@ namespace Ule4Jis.Net
             keybd_event(vkCode, scanCode, flags, EmulatorMarker);
         }
 
-        /// <summary>
-        /// Windows 11 のキー入力キュー更新待ち(20ms)を挟んで、100% 確実に「本物の Shift + CapsLock (大文字固定 ON/OFF)」を判定させる。
-        /// </summary>
-        public static void SendCapsLockSignal()
-        {
-            Task.Run(async () =>
-            {
-                EmulateKey(VK_LSHIFT, up: false);
-                await Task.Delay(20); // OSのShiftキー押下認識を確実にするウェイト
-                EmulateKey(VK_CAPITAL, up: false);
-                EmulateKey(VK_CAPITAL, up: true);
-                await Task.Delay(20);
-                EmulateKey(VK_LSHIFT, up: true);
-            });
-        }
-
         private static bool IsExtendedKey(byte vkCode)
         {
             switch (vkCode)
@@ -190,19 +173,6 @@ namespace Ule4Jis.Net
             return (GetKeyState(VK_SHIFT) & 0x8000) != 0 ||
                    (GetKeyState(VK_LSHIFT) & 0x8000) != 0 ||
                    (GetKeyState(VK_RSHIFT) & 0x8000) != 0;
-        }
-
-        public static bool IsCapsLockOn()
-        {
-            return (GetKeyState(VK_CAPITAL) & 0x0001) != 0;
-        }
-
-        public static void DisableCapsLockLed()
-        {
-            if (IsCapsLockOn())
-            {
-                SendCapsLockSignal();
-            }
         }
     }
 }

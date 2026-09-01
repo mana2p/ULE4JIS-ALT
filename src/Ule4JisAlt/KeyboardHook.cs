@@ -16,9 +16,6 @@ namespace Ule4Jis.Net
         {
             if (_hookID != IntPtr.Zero) return;
 
-            // 起動時にCapsLock LEDが点灯している場合は自動消灯
-            NativeMethods.DisableCapsLockLed();
-
             _hookDelegate = HookCallback;
             using (Process curProcess = Process.GetCurrentProcess())
             using (ProcessModule? curModule = curProcess.MainModule)
@@ -45,8 +42,7 @@ namespace Ule4Jis.Net
                 int msg = (int)wParam;
                 NativeMethods.KBDLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<NativeMethods.KBDLLHOOKSTRUCT>(lParam);
 
-                // 自分が keybd_event で送ったイベント（dwExtraInfo == EmulatorMarker）はそのまま通す
-                // オリジナルC++: if (args.getExtraInfo() == (ULONG_PTR)this) return false;
+                // 自分が keybd_event で送ったエミュレートイベント（dwExtraInfo == EmulatorMarker）はそのまま通す
                 if (hookStruct.dwExtraInfo == NativeMethods.EmulatorMarker)
                 {
                     return NativeMethods.CallNextHookEx(_hookID, nCode, wParam, lParam);
@@ -55,7 +51,7 @@ namespace Ule4Jis.Net
                 uint vkCode = hookStruct.vkCode;
                 bool isUp = (msg == NativeMethods.WM_KEYUP || msg == NativeMethods.WM_SYSKEYUP);
 
-                // 1. Alt-IME / CapsLock 切り替え処理
+                // 1. 左右 Alt 空打ち IME 切り替え処理
                 if (AltImeEnabled)
                 {
                     bool handled = AltImeSwitcher.ProcessKeyEvent(vkCode, hookStruct.flags, msg);
@@ -73,11 +69,9 @@ namespace Ule4Jis.Net
                     {
                         if (result != null)
                         {
-                            // マッピング結果あり → エミュレートキーを送信
                             UsOnJisMapper.SendEmulatedKey(result, isUp);
                         }
-                        // result == null の場合は NOP（元キーを消費して何もしない）
-                        return (IntPtr)1;
+                        return (IntPtr)1; // イベントを消費
                     }
                 }
             }

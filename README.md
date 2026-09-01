@@ -1,52 +1,41 @@
 # ULE4JIS-ALT
 
-オリジナル版 [dezz/ULE4JIS](https://github.com/dezz/ULE4JIS) を、最新の **.NET 9 (C#)** 環境へ移植・再構築したアプリケーションです。
-
-Windowsのキーボード設定を **JIS (日本語配列)** にしたまま **US (英語配列)** キーボードを入力・エミュレートするオリジナル機能に加え、**左右Altキーの単体押しによるIME切り替え・カタカナ変換機能** を追加しています。
-
----
-
-## 📥 ダウンロード (Download)
-
-一般ユーザー向けにビルド済みの実行ファイル (`.exe`) をリポジトリ内に用意しています。
-
-👉 **[ULE4JIS-ALT.exe を直接ダウンロード (最新版)](https://github.com/ntakeshitgcom/ULE4JIS/raw/master/publish/ULE4JIS-ALT.exe)**
-
-ダウンロード後、`ULE4JIS-ALT.exe` をダブルクリックするだけでそのまま起動・常駐します。インストール作業や追加DLLは一切不要です。
+日本語配列 (JIS) キーボードを、まるで物理 US 配列キーボードであるかのように打鍵できるようにする Windows 用ユーティリティです。  
+名作ユーティリティ `ULE4JIS` の設計思想をリスペクトし、現代の **.NET 9** で完全再構築しました。
 
 ---
 
-## ⚡ 主な特徴 (Features)
+## 🌟 主な特徴
 
-- **.NET 9 (C#) での再構築**
-  - 最新の .NET 9 環境に対応し、約200KBの超軽量・単一実行ファイル (`ULE4JIS-ALT.exe`) として動作します。
-- **JIS設定のままUS配列入力を再現 (ULE4JIS)**
-  - `Shift + 2` で `@`、`Shift + 6` で `^` など、JISキーボード設定のままUSキーボードの印字通りに入力できます。
-- **左右 Alt 空打ちによる IME 切り替え & カタカナ変換 (alt-ime-ahk 互換)**
-  - **右 Alt キー単押し**: 日本語入力 (IME ON)
-  - **左 Alt キー単押し**: 入力中は **無変換（全角/半角カタカナ変換）**、未入力時は **英語入力 (IME OFF)**
-- **CapsLock の挙動拡張**
-  - 短押しで **IMEトグル**、0.5秒長押しで **本来のCapsLock (大文字固定)** として動作。起動時の CapsLock LED 自動消灯にも対応。
-- **ドット絵キーキャップアイコン**
-  - タスクトレイおよび実行ファイルアイコンにドット絵キーキャップデザインを採用。
+1. **JIS配列キーボードのUS配列化 (ULE4JIS エミュレーション)**
+   - `@` `[` `]` `:` `^` `_` などの記号キー入力を、US配列の印字通りのキー操作に変換します。
+   - `Shift` との組み合わせ記号（`@` `&` `*` `(` `)` `+` `:` `"` など）も完璧にシミュレート。
+
+2. **左右 Alt 空打ちによるスマート IME 切り替え (macOS風)**
+   - **左 Alt の空打ち**: 無変換キー (`VK_NONCONVERT`) を送信し、文字入力中はカタカナ変換、未入力時は英語入力 (IME OFF) へ変換。
+   - **右 Alt の空打ち**: 日本語入力 (IME ON) へ変換。
+   - `Alt + Tab` や `Alt + F4` などのショートカット操作時は通常の Alt として動作するため邪魔になりません。
 
 ---
 
-## 🛠️ ビルド手順 (How to Build)
+## 🚀 使い方 / ダウンロード
 
-ソースコードから自分でビルドしたい場合のコマンドです。
-
-### 必須環境
-- [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) (Windows x64)
-
-```powershell
-# ルートの publish ディレクトリへパブリッシュ
-dotnet publish src/Ule4JisAlt -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish
-```
+1. **[最新バージョンのダウンロード (ULE4JIS-ALT.exe)](https://raw.githubusercontent.com/ntakeshitgcom/ULE4JIS/master/publish/ULE4JIS-ALT.exe)**
+2. ダウンロードした `ULE4JIS-ALT.exe` を実行するだけで、タスクバーの通知領域（トレイアイコン）に常駐します。
+3. トレイアイコンを右クリックすることで、各機能の ON / OFF 切り替えや Windows 起動時の自動起動を設定できます。
 
 ---
 
-## 🙏 クレジット (Credits)
+## 🛠️ 開発・ビルド環境
 
-- **オリジナル C++ 版**: [dezz/ULE4JIS](https://github.com/dezz/ULE4JIS)
-- **Alt IME 切り替え**: [karakaram/alt-ime-ahk](https://github.com/karakaram/alt-ime-ahk)
+- **言語 / 構成**: C# (.NET 9.0 Windows Forms / Single File Executable)
+- **ビルドコマンド**:
+  ```powershell
+  dotnet publish src/Ule4JisAlt -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish
+  ```
+
+---
+
+## 📜 ライセンス & クレジット
+
+- **オリジナル ULE4JIS**: Copyright (c) 2010 sgk
