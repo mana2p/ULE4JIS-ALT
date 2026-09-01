@@ -51,6 +51,7 @@ namespace Ule4Jis.Net
         public const byte VK_OEM_ENLW = 0xF3; // 半角/全角
         public const byte VK_OEM_AUTO = 0xF4; // 半角/全角
 
+        public const uint INPUT_KEYBOARD = 1;
         public const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
         public const uint KEYEVENTF_KEYUP = 0x0002;
 
@@ -91,6 +92,53 @@ namespace Ule4Jis.Net
             public RECT rcCaret;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MOUSEINPUT
+        {
+            public int dx;
+            public int dy;
+            public uint mouseData;
+            public uint dwFlags;
+            public uint time;
+            public UIntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct KEYBDINPUT
+        {
+            public ushort wVk;
+            public ushort wScan;
+            public uint dwFlags;
+            public uint time;
+            public UIntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct HARDWAREINPUT
+        {
+            public uint uMsg;
+            public ushort wParamL;
+            public ushort wParamH;
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public struct INPUTUNION
+        {
+            [FieldOffset(0)]
+            public MOUSEINPUT mi;
+            [FieldOffset(0)]
+            public KEYBDINPUT ki;
+            [FieldOffset(0)]
+            public HARDWAREINPUT hi;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct INPUT
+        {
+            public uint type;
+            public INPUTUNION U;
+        }
+
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern IntPtr SetWindowsHookEx(int idHook, HookProc lpfn, IntPtr hMod, uint dwThreadId);
 
@@ -107,14 +155,11 @@ namespace Ule4Jis.Net
         [DllImport("user32.dll")]
         public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
         [DllImport("user32.dll")]
         public static extern short GetKeyState(int nVirtKey);
-
-        [DllImport("user32.dll")]
-        public static extern bool GetKeyboardState(byte[] lpKeyState);
-
-        [DllImport("user32.dll")]
-        public static extern bool SetKeyboardState(byte[] lpKeyState);
 
         [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
@@ -135,27 +180,34 @@ namespace Ule4Jis.Net
         public static void EmulateKey(byte vkCode, bool up)
         {
             uint flags = up ? KEYEVENTF_KEYUP : 0;
-            byte scanCode = (vkCode == VK_CAPITAL) ? (byte)0x3A : (byte)0;
             if (IsExtendedKey(vkCode))
             {
                 flags |= KEYEVENTF_EXTENDEDKEY;
             }
-            keybd_event(vkCode, scanCode, flags, EmulatorMarker);
+            keybd_event(vkCode, 0, flags, EmulatorMarker);
         }
 
-        public static void ToggleCapsLockHardware()
+        /// <summary>
+        /// SendInput を使って確実かつ強力に CapsLock 状態を反転（トグル）させる。
+        /// dwExtraInfo に EmulatorMarker を付与するため自作フックを全スルーして OS に届く。
+        /// </summary>
+        public static void ToggleCapsLockState()
         {
-            // スキャンコード 0x3A (CapsLock) を指定してキーイベントを送信
-            EmulateKey(VK_CAPITAL, false);
-            EmulateKey(VK_CAPITAL, true);
+            INPUT[] inputs = new INPUT[2];
 
-            // SetKeyboardState で状態を補填
-            byte[] keys = new byte[256];
-            if (GetKeyboardState(keys))
-            {
-                keys[VK_CAPITAL] = (byte)((keys[VK_CAPITAL] & 0x01) == 0 ? 0x01 : 0x00);
-                SetKeyboardState(keys);
-            }
+            inputs[0].type = INPUT_KEYBOARD;
+            inputs[0].U.ki.wVk = VK_CAPITAL;
+            inputs[0].U.ki.wScan = 0x3A; // CapsLock の物理スキャンコード
+            inputs[0].U.ki.dwFlags = 0;   // KeyDown
+            inputs[0].U.ki.dwExtraInfo = EmulatorMarker;
+
+            inputs[1].type = INPUT_KEYBOARD;
+            inputs[1].U.ki.wVk = VK_CAPITAL;
+            inputs[1].U.ki.wScan = 0x3A;
+            inputs[1].U.ki.dwFlags = KEYEVENTF_KEYUP; // KeyUp
+            inputs[1].U.ki.dwExtraInfo = EmulatorMarker;
+
+            SendInput(2, inputs, Marshal.SizeOf(typeof(INPUT)));
         }
 
         private static bool IsExtendedKey(byte vkCode)
@@ -202,7 +254,7 @@ namespace Ule4Jis.Net
         {
             if (IsCapsLockOn())
             {
-                ToggleCapsLockHardware();
+                ToggleCapsLockState();
             }
         }
     }

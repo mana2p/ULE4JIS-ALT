@@ -7,8 +7,8 @@ namespace Ule4Jis.Net
 {
     public enum CapsLockMode
     {
-        Disabled,   // 通常の CapsLock として動作 (フックでスルー)
-        ImeToggle   // CapsLock 短押しで IME トグル、長押しで本来の CapsLock
+        Disabled,   // 無効 (通常の CapsLock として単体押しで大文字固定 ON/OFF)
+        ImeToggle   // IME切り替え (短押しで IME トグル、長押しで本来の CapsLock)
     }
 
     public static class AltImeSwitcher
@@ -37,12 +37,26 @@ namespace Ule4Jis.Net
             bool isRightAlt = (vkCode == NativeMethods.VK_RMENU) || (vkCode == NativeMethods.VK_MENU && isExtended);
             bool isCapsLock = (vkCode == NativeMethods.VK_CAPITAL);
 
-            // モードが Disabled の場合は CapsLock の処理を一切行わず、そのままOSに通す
+            // 1. CapsLock モードが「無効 (通常の CapsLock)」の場合
             if (isCapsLock && CurrentCapsLockMode == CapsLockMode.Disabled)
             {
-                return false;
+                if (isDown)
+                {
+                    if (!_capsDown)
+                    {
+                        _capsDown = true;
+                        // 単体押しで SendInput による確実な CapsLock トグルを発動！
+                        NativeMethods.ToggleCapsLockState();
+                    }
+                }
+                else if (isUp)
+                {
+                    _capsDown = false;
+                }
+                return true; // イベントをフック消費
             }
 
+            // 2. CapsLock モードが「IMEをトグル切り替え (ON/OFF)」の場合
             if (isDown)
             {
                 if (isLeftAlt)
@@ -161,9 +175,8 @@ namespace Ule4Jis.Net
                 _capsTimer?.Dispose();
                 _capsTimer = null;
 
-                // エミュレーションマーカー付きで CapsLock キーを送信。
-                // dwExtraInfo == EmulatorMarker なのでフックをスルーして確実に OS / アプリへ届く！
-                NativeMethods.ToggleCapsLockHardware();
+                // 300ms 経過で長押し確定 -> SendInput による確実な CapsLock トグルを発動！
+                NativeMethods.ToggleCapsLockState();
             }
         }
 
