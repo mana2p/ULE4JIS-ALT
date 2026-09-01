@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace Ule4Jis.Net
 {
@@ -141,14 +142,19 @@ namespace Ule4Jis.Net
         }
 
         /// <summary>
-        /// Windows 11 において「本来の CapsLock (大文字固定 ON/OFF)」を確実に発動させる唯一の公式シグナル (Shift + CapsLock) を送信する。
+        /// Windows 11 のキー入力キュー更新待ち(20ms)を挟んで、100% 確実に「本物の Shift + CapsLock (大文字固定 ON/OFF)」を判定させる。
         /// </summary>
         public static void SendCapsLockSignal()
         {
-            EmulateKey(VK_LSHIFT, up: false);
-            EmulateKey(VK_CAPITAL, up: false);
-            EmulateKey(VK_CAPITAL, up: true);
-            EmulateKey(VK_LSHIFT, up: true);
+            Task.Run(async () =>
+            {
+                EmulateKey(VK_LSHIFT, up: false);
+                await Task.Delay(20); // OSのShiftキー押下認識を確実にするウェイト
+                EmulateKey(VK_CAPITAL, up: false);
+                EmulateKey(VK_CAPITAL, up: true);
+                await Task.Delay(20);
+                EmulateKey(VK_LSHIFT, up: true);
+            });
         }
 
         private static bool IsExtendedKey(byte vkCode)
