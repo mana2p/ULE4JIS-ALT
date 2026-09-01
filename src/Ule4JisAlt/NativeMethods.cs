@@ -1,6 +1,5 @@
 using System;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 
 namespace Ule4Jis.Net
 {
@@ -14,22 +13,22 @@ namespace Ule4Jis.Net
         public const int WM_SYSKEYUP = 0x0105;
 
         // Virtual Key Codes
-        public const byte VK_CAPITAL = 0x14; // Caps Lock
+        public const byte VK_CAPITAL = 0x14;   // Caps Lock
         public const byte VK_SHIFT = 0x10;
         public const byte VK_CONTROL = 0x11;
-        public const byte VK_MENU = 0x12;    // Alt
+        public const byte VK_MENU = 0x12;      // Alt
         public const byte VK_LSHIFT = 0xA0;
         public const byte VK_RSHIFT = 0xA1;
         public const byte VK_LCONTROL = 0xA2;
         public const byte VK_RCONTROL = 0xA3;
-        public const byte VK_LMENU = 0xA4;   // Left Alt
-        public const byte VK_RMENU = 0xA5;   // Right Alt
+        public const byte VK_LMENU = 0xA4;     // Left Alt
+        public const byte VK_RMENU = 0xA5;     // Right Alt
 
         // IME Virtual Keys & Messages
         public const byte VK_IME_ON = 0x16;
         public const byte VK_IME_OFF = 0x1A;
-        public const byte VK_KANJI = 0x19;   // 漢字 / 半角全角
-        public const byte VK_NONCONVERT = 0x1D; // 無変換キー (カタカナ変換 / 英数)
+        public const byte VK_KANJI = 0x19;     // 漢字 / 半角全角
+        public const byte VK_NONCONVERT = 0x1D; // 無変換キー
         public const byte VK_CONVERT = 0x1C;    // 変換キー
 
         public const uint WM_IME_CONTROL = 0x0283;
@@ -37,20 +36,20 @@ namespace Ule4Jis.Net
         public const int IMC_SETOPENSTATUS = 0x0006;
 
         // OEM Virtual Keys for JIS / US Layout
-        public const byte VK_OEM_1 = 0xBA;    // JIS: :*, US: ;:
-        public const byte VK_OEM_PLUS = 0xBB;  // JIS: ;+, US: =+
+        public const byte VK_OEM_1 = 0xBA;
+        public const byte VK_OEM_PLUS = 0xBB;
         public const byte VK_OEM_COMMA = 0xBC;
-        public const byte VK_OEM_MINUS = 0xBD; // -_
+        public const byte VK_OEM_MINUS = 0xBD;
         public const byte VK_OEM_PERIOD = 0xBE;
-        public const byte VK_OEM_2 = 0xBF;    // /?
-        public const byte VK_OEM_3 = 0xC0;    // JIS: @`, US: `~
-        public const byte VK_OEM_4 = 0xDB;    // JIS: [{, US: [{
-        public const byte VK_OEM_5 = 0xDC;    // JIS: \|, US: \|
-        public const byte VK_OEM_6 = 0xDD;    // JIS: ]}, US: ]}
-        public const byte VK_OEM_7 = 0xDE;    // JIS: ^~, US: '"
-        public const byte VK_OEM_102 = 0xE2;  // JIS: \_
-        public const byte VK_OEM_ENLW = 0xF3; // 半角/全角
-        public const byte VK_OEM_AUTO = 0xF4; // 半角/全角
+        public const byte VK_OEM_2 = 0xBF;
+        public const byte VK_OEM_3 = 0xC0;
+        public const byte VK_OEM_4 = 0xDB;
+        public const byte VK_OEM_5 = 0xDC;
+        public const byte VK_OEM_6 = 0xDD;
+        public const byte VK_OEM_7 = 0xDE;
+        public const byte VK_OEM_102 = 0xE2;
+        public const byte VK_OEM_ENLW = 0xF3;
+        public const byte VK_OEM_AUTO = 0xF4;
 
         public const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
         public const uint KEYEVENTF_KEYUP = 0x0002;
@@ -112,12 +111,6 @@ namespace Ule4Jis.Net
         public static extern short GetKeyState(int nVirtKey);
 
         [DllImport("user32.dll")]
-        public static extern bool GetKeyboardState(byte[] lpKeyState);
-
-        [DllImport("user32.dll")]
-        public static extern bool SetKeyboardState(byte[] lpKeyState);
-
-        [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
 
         [DllImport("user32.dll")]
@@ -133,6 +126,9 @@ namespace Ule4Jis.Net
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
+        /// <summary>
+        /// キーエミュレーション送信（識別用 EmulatorMarker 付き）
+        /// </summary>
         public static void EmulateKey(byte vkCode, bool up)
         {
             uint flags = up ? KEYEVENTF_KEYUP : 0;
@@ -145,21 +141,14 @@ namespace Ule4Jis.Net
         }
 
         /// <summary>
-        /// フォーカス位置（文字入力欄／非入力欄）に関わらず、システム全体の CapsLock 状態（大文字固定 ON/OFF）を確実にトグル反転させる。
+        /// Windows 11 において「本来の CapsLock (大文字固定 ON/OFF)」を確実に発動させる唯一の公式シグナル (Shift + CapsLock) を送信する。
         /// </summary>
-        public static void ExecuteCapsLockToggleGlobal()
+        public static void SendCapsLockSignal()
         {
-            // 1. keybd_event で VK_CAPITAL (0x14) を送信
+            EmulateKey(VK_LSHIFT, up: false);
             EmulateKey(VK_CAPITAL, up: false);
             EmulateKey(VK_CAPITAL, up: true);
-
-            // 2. システムキーボードステートテーブルの CapsLock ロックビット (0x01) を直接反転
-            byte[] keyState = new byte[256];
-            if (GetKeyboardState(keyState))
-            {
-                keyState[VK_CAPITAL] ^= 1; // bit 0 反転
-                SetKeyboardState(keyState);
-            }
+            EmulateKey(VK_LSHIFT, up: true);
         }
 
         private static bool IsExtendedKey(byte vkCode)
@@ -173,8 +162,8 @@ namespace Ule4Jis.Net
                 case 0x2E: // VK_DELETE
                 case 0x24: // VK_HOME
                 case 0x23: // VK_END
-                case 0x21: // VK_PRIOR (Page Up)
-                case 0x22: // VK_NEXT (Page Down)
+                case 0x21: // VK_PRIOR
+                case 0x22: // VK_NEXT
                 case 0x26: // VK_UP
                 case 0x28: // VK_DOWN
                 case 0x27: // VK_RIGHT
@@ -206,7 +195,7 @@ namespace Ule4Jis.Net
         {
             if (IsCapsLockOn())
             {
-                ExecuteCapsLockToggleGlobal();
+                SendCapsLockSignal();
             }
         }
     }
