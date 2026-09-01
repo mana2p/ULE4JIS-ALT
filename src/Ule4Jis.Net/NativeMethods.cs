@@ -28,10 +28,13 @@ namespace Ule4Jis.Net
         public const byte VK_IME_ON = 0x16;
         public const byte VK_IME_OFF = 0x1A;
         public const byte VK_KANJI = 0x19;
+        public const byte VK_NONCONVERT = 0x1D; // 無変換キー (カタカナ変換)
+        public const byte VK_CONVERT = 0x1C;    // 変換キー
 
         public const uint WM_IME_CONTROL = 0x0283;
         public const int IMC_GETOPENSTATUS = 0x0005;
         public const int IMC_SETOPENSTATUS = 0x0006;
+        public const uint GCS_COMPSTR = 0x0008;
 
         // OEM Virtual Keys for JIS / US Layout
         public const byte VK_OEM_1 = 0xBA;   // JIS: :*, US: ;:
@@ -52,8 +55,6 @@ namespace Ule4Jis.Net
         public const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
         public const uint KEYEVENTF_KEYUP = 0x0002;
 
-        // オリジナルC++と同じマーカー値。
-        // keybd_event の dwExtraInfo に設定し、フック側で自分が送ったイベントかどうか識別する。
         public static readonly UIntPtr EmulatorMarker = new UIntPtr(0x554C4534); // "ULE4"
 
         public delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
@@ -104,10 +105,6 @@ namespace Ule4Jis.Net
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern IntPtr GetModuleHandle(string? lpModuleName);
 
-        /// <summary>
-        /// オリジナルC++と同じ keybd_event API を使用。
-        /// SendInput よりシンプルで、dwExtraInfo の受け渡しに構造体マーシャリングの問題がない。
-        /// </summary>
         [DllImport("user32.dll")]
         public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 
@@ -127,14 +124,18 @@ namespace Ule4Jis.Net
         [DllImport("imm32.dll")]
         public static extern IntPtr ImmGetDefaultIMEWnd(IntPtr hWnd);
 
+        [DllImport("imm32.dll")]
+        public static extern IntPtr ImmGetContext(IntPtr hWnd);
+
+        [DllImport("imm32.dll")]
+        public static extern bool ImmReleaseContext(IntPtr hWnd, IntPtr hIMC);
+
+        [DllImport("imm32.dll", CharSet = CharSet.Unicode)]
+        public static extern int ImmGetCompositionString(IntPtr hIMC, uint dwIndex, byte[]? lpBuf, uint dwBufLen);
+
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
-        /// <summary>
-        /// オリジナルC++の emulateKey() と完全に同じ実装:
-        ///   keybd_event(vkey, 0, flags, (ULONG_PTR)this);
-        /// 拡張キーの判定もオリジナルと同一ロジック。
-        /// </summary>
         public static void EmulateKey(byte vkCode, bool up)
         {
             uint flags = up ? KEYEVENTF_KEYUP : 0;
@@ -145,9 +146,6 @@ namespace Ule4Jis.Net
             keybd_event(vkCode, 0, flags, EmulatorMarker);
         }
 
-        /// <summary>
-        /// オリジナルC++の isExtendedKey() と同一。
-        /// </summary>
         private static bool IsExtendedKey(byte vkCode)
         {
             switch (vkCode)

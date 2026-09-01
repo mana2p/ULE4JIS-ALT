@@ -67,8 +67,17 @@ namespace Ule4Jis.Net
 
                     if (shouldToggle)
                     {
-                        // 左Alt空打ち -> IME OFF (英数)
-                        SetImeStatus(false);
+                        // 未確定文字列がある状態（文字入力中） -> 無変換キー (VK_NONCONVERT = カタカナ変換)
+                        // 未確定文字列がない状態（何も入力していない状態） -> IME OFF (英数)
+                        if (GetImeStatus() && HasCompositionString())
+                        {
+                            NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: false);
+                            NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: true);
+                        }
+                        else
+                        {
+                            SetImeStatus(false);
+                        }
                     }
                 }
                 else if (isRightAlt)
@@ -121,6 +130,45 @@ namespace Ule4Jis.Net
                    vkCode == NativeMethods.VK_CAPITAL ||
                    vkCode == 0x5B || // Left Windows Key
                    vkCode == 0x5C;   // Right Windows Key
+        }
+
+        /// <summary>
+        /// 現在アクティブな入力フォーカスで未確定文字列（IME Composition String）が存在するかどうか判定する
+        /// </summary>
+        public static bool HasCompositionString()
+        {
+            IntPtr fgWnd = NativeMethods.GetForegroundWindow();
+            if (fgWnd == IntPtr.Zero) return false;
+
+            uint threadId = NativeMethods.GetWindowThreadProcessId(fgWnd, out _);
+            IntPtr targetWnd = fgWnd;
+
+            NativeMethods.GUITHREADINFO gti = new NativeMethods.GUITHREADINFO();
+            gti.cbSize = Marshal.SizeOf(typeof(NativeMethods.GUITHREADINFO));
+            if (NativeMethods.GetGUIThreadInfo(threadId, ref gti) && gti.hwndFocus != IntPtr.Zero)
+            {
+                targetWnd = gti.hwndFocus;
+            }
+
+            IntPtr hIMC = NativeMethods.ImmGetContext(targetWnd);
+            if (hIMC != IntPtr.Zero)
+            {
+                try
+                {
+                    int len = NativeMethods.ImmGetCompositionString(hIMC, NativeMethods.GCS_COMPSTR, null, 0);
+                    return len > 0;
+                }
+                catch
+                {
+                    // 無視
+                }
+                finally
+                {
+                    NativeMethods.ImmReleaseContext(targetWnd, hIMC);
+                }
+            }
+
+            return false;
         }
 
         public static bool GetImeStatus()
