@@ -2,20 +2,15 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace Ule4Jis.Net
 {
     public enum CapsLockMode
     {
-        Disabled,   // 通常の CapsLock として動作
+        Disabled,   // 通常の CapsLock として動作 (フックでスルー)
         ImeToggle   // CapsLock 短押しで IME トグル、長押しで本来の CapsLock
     }
 
-    /// <summary>
-    /// 低レベルキーボードフックからのイベントを処理し、Alt単押しでのIME切替およびタイマー駆動のCapsLock長押し/短押し判定を行う。
-    /// 業界標準の Tap-Hold (Dual-Role Key) パターンを採用。
-    /// </summary>
     public static class AltImeSwitcher
     {
         private static bool _leftAltDown = false;
@@ -41,6 +36,12 @@ namespace Ule4Jis.Net
             bool isLeftAlt = (vkCode == NativeMethods.VK_LMENU) || (vkCode == NativeMethods.VK_MENU && !isExtended);
             bool isRightAlt = (vkCode == NativeMethods.VK_RMENU) || (vkCode == NativeMethods.VK_MENU && isExtended);
             bool isCapsLock = (vkCode == NativeMethods.VK_CAPITAL);
+
+            // モードが Disabled の場合は CapsLock の処理を一切行わず、そのままOSに通す
+            if (isCapsLock && CurrentCapsLockMode == CapsLockMode.Disabled)
+            {
+                return false;
+            }
 
             if (isDown)
             {
@@ -71,7 +72,7 @@ namespace Ule4Jis.Net
                 }
                 else if (!IsModifierKey(vkCode))
                 {
-                    // 他キーが押された場合コンボ判定
+                    // 通常キーが押された場合、Altコンボが発生したと判定
                     if (_leftAltDown && !_leftAltCombo)
                     {
                         _leftAltCombo = true;
@@ -81,11 +82,6 @@ namespace Ule4Jis.Net
                     {
                         _rightAltCombo = true;
                         NativeMethods.EmulateKey(NativeMethods.VK_RMENU, up: false);
-                    }
-                    if (_capsDown)
-                    {
-                        // CapsLock を押しながら他キーが押された場合も長押し扱いにしてタイマー即時発火
-                        TriggerCapsLockLongPress();
                     }
                 }
             }
@@ -120,7 +116,7 @@ namespace Ule4Jis.Net
 
                     if (wasDown && !wasCombo)
                     {
-                        // 右Alt空打ち -> IME ON
+                        // 右Alt空打ち -> IME ON (かな)
                         SetImeStatus(true);
                     }
                     else if (wasCombo)
@@ -149,25 +145,14 @@ namespace Ule4Jis.Net
                 }
             }
 
-            if (isCapsLock && CurrentCapsLockMode == CapsLockMode.ImeToggle)
-            {
-                return true;
-            }
-
             return false;
         }
 
-        /// <summary>
-        /// CapsLock 長押しタイマー発火コールバック
-        /// </summary>
         private static void OnCapsLockLongPressTimer(object? state)
         {
             TriggerCapsLockLongPress();
         }
 
-        /// <summary>
-        /// CapsLock の長押し（本来の CapsLock トグル機能）を発動する
-        /// </summary>
         private static void TriggerCapsLockLongPress()
         {
             if (_capsDown && !_capsLongPressFired)
@@ -176,18 +161,9 @@ namespace Ule4Jis.Net
                 _capsTimer?.Dispose();
                 _capsTimer = null;
 
-                // フックの同期処理から脱出し、非同期で確実に CapsLock をトグル
-                Task.Run(() =>
-                {
-                    try
-                    {
-                        SendKeys.SendWait("{CAPSLOCK}");
-                    }
-                    catch
-                    {
-                        NativeMethods.ToggleCapsLockHardware();
-                    }
-                });
+                // エミュレーションマーカー付きで CapsLock キーを送信。
+                // dwExtraInfo == EmulatorMarker なのでフックをスルーして確実に OS / アプリへ届く！
+                NativeMethods.ToggleCapsLockHardware();
             }
         }
 
