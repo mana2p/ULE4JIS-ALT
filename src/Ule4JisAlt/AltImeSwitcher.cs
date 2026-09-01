@@ -18,10 +18,9 @@ namespace Ule4Jis.Net
         private static bool _rightAltCombo = false;
 
         private static bool _capsDown = false;
-        private static bool _capsCombo = false;
         private static long _capsDownTime = 0;
 
-        private const long LongPressThresholdMs = 500; // 500ms 以上で長押し判定
+        private const long LongPressThresholdMs = 350; // 350ms 以上で長押し判定（体感に合わせた快適な閾値）
 
         public static CapsLockMode CurrentCapsLockMode { get; set; } = CapsLockMode.ImeToggle;
 
@@ -59,14 +58,13 @@ namespace Ule4Jis.Net
                     if (!_capsDown)
                     {
                         _capsDown = true;
-                        _capsCombo = false;
                         _capsDownTime = Environment.TickCount64;
                     }
                     return true; // CapsLock KeyDownを即座に消費
                 }
                 else if (!IsModifierKey(vkCode))
                 {
-                    // 通常キーが押された場合、Alt/CapsLockコンボが発生したと判定
+                    // 通常キーが押された場合、Altコンボ（Alt+Tabなど）が発生したと判定
                     if (_leftAltDown && !_leftAltCombo)
                     {
                         _leftAltCombo = true;
@@ -76,10 +74,6 @@ namespace Ule4Jis.Net
                     {
                         _rightAltCombo = true;
                         NativeMethods.EmulateKey(NativeMethods.VK_RMENU, up: false);
-                    }
-                    if (_capsDown)
-                    {
-                        _capsCombo = true;
                     }
                 }
             }
@@ -94,9 +88,7 @@ namespace Ule4Jis.Net
 
                     if (wasDown && !wasCombo)
                     {
-                        // 左Altの単体空打ち:
-                        // 無変換キー (VK_NONCONVERT = 0x1D) を送信。
-                        // IMEが「未確定入力中ならカタカナ変換」「未入力なら英数/IME OFF」をネイティブ処理します。
+                        // 左Altの単体空打ち: 無変換キー (VK_NONCONVERT = 0x1D) 送信
                         NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: false);
                         NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: true);
                     }
@@ -129,17 +121,14 @@ namespace Ule4Jis.Net
                 else if (isCapsLock && CurrentCapsLockMode == CapsLockMode.ImeToggle)
                 {
                     bool wasDown = _capsDown;
-                    bool wasCombo = _capsCombo;
                     long duration = Environment.TickCount64 - _capsDownTime;
-
                     _capsDown = false;
-                    _capsCombo = false;
 
-                    if (wasDown && !wasCombo)
+                    if (wasDown)
                     {
                         if (duration >= LongPressThresholdMs)
                         {
-                            // 500ms 以上の長押し -> 本来の CapsLock 機能 (大文字固定 ON/OFF) を送信
+                            // 350ms 以上の長押し -> 本来の CapsLock 機能 (大文字固定 ON/OFF) を発足
                             NativeMethods.EmulateKey(NativeMethods.VK_CAPITAL, up: false);
                             NativeMethods.EmulateKey(NativeMethods.VK_CAPITAL, up: true);
                         }
