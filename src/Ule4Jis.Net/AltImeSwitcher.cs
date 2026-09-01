@@ -38,22 +38,43 @@ namespace Ule4Jis.Net
                 {
                     _leftAltDown = true;
                     _leftAltCombo = false;
+                    // 左AltのKeyDownをOSに渡さない（フック消費）。
+                    // これによりOSのメニューバー起動や未確定文字の自動確定を完全に阻止！
+                    return true;
                 }
                 else if (isRightAlt)
                 {
                     _rightAltDown = true;
                     _rightAltCombo = false;
+                    // 右AltのKeyDownもフック消費
+                    return true;
                 }
                 else if (isCapsLock && CurrentCapsLockMode == CapsLockMode.ImeToggle)
                 {
                     _capsDown = true;
                     _capsCombo = false;
+                    return true;
                 }
                 else if (!IsModifierKey(vkCode))
                 {
-                    // 修飾キー以外の通常キーが押された場合のみ、コンボ（Alt+Tab等）と判定
-                    if (_leftAltDown) _leftAltCombo = true;
-                    if (_rightAltDown) _rightAltCombo = true;
+                    // 通常キーが押された場合、Altコンボ（Alt+Tabなど）が発生したと判定
+                    if (_leftAltDown)
+                    {
+                        if (!_leftAltCombo)
+                        {
+                            _leftAltCombo = true;
+                            // ショートカットキーのために抑止していた Alt Down を遅延送信
+                            NativeMethods.EmulateKey(NativeMethods.VK_LMENU, up: false);
+                        }
+                    }
+                    if (_rightAltDown)
+                    {
+                        if (!_rightAltCombo)
+                        {
+                            _rightAltCombo = true;
+                            NativeMethods.EmulateKey(NativeMethods.VK_RMENU, up: false);
+                        }
+                    }
                     if (_capsDown) _capsCombo = true;
                 }
             }
@@ -61,42 +82,53 @@ namespace Ule4Jis.Net
             {
                 if (isLeftAlt)
                 {
-                    bool shouldToggle = _leftAltDown && !_leftAltCombo;
+                    bool wasDown = _leftAltDown;
+                    bool wasCombo = _leftAltCombo;
                     _leftAltDown = false;
                     _leftAltCombo = false;
 
-                    if (shouldToggle)
+                    if (wasDown && !wasCombo)
                     {
-                        // メニューバーのアクティブ化（文字の自動確定）を防ぐためダミーキー(0xFF)を送信
-                        SuppressMenuFocus();
-
-                        // 未確定文字列がある状態（文字入力中） -> 無変換キー (VK_NONCONVERT = カタカナ変換)
-                        // 未確定文字列がない状態 -> IME OFF (英数)
-                        if (HasCompositionString())
+                        // 左Altの単体空打ち
+                        // IMEがONで、かつ入力中の未確定文字列がある場合（またはIME ON時）
+                        if (GetImeStatus() && HasCompositionString())
                         {
+                            // 未確定文字を入力中 -> 無変換キー (VK_NONCONVERT = カタカナ変換) 送信！
                             NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: false);
                             NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: true);
                         }
                         else
                         {
+                            // 未確定文字がない状態 -> IME OFF (英数)
                             SetImeStatus(false);
                         }
                     }
+                    else if (wasCombo)
+                    {
+                        // コンボ入力だった場合は遅延していた Alt Up を送信
+                        NativeMethods.EmulateKey(NativeMethods.VK_LMENU, up: true);
+                    }
+
+                    return true; // 左Alt Upイベントをフック消費
                 }
                 else if (isRightAlt)
                 {
-                    bool shouldToggle = _rightAltDown && !_rightAltCombo;
+                    bool wasDown = _rightAltDown;
+                    bool wasCombo = _rightAltCombo;
                     _rightAltDown = false;
                     _rightAltCombo = false;
 
-                    if (shouldToggle)
+                    if (wasDown && !wasCombo)
                     {
-                        // メニューバーのアクティブ化を防ぐためダミーキー(0xFF)を送信
-                        SuppressMenuFocus();
-
-                        // 右Alt空打ち -> IME ON (かな)
+                        // 右Altの単体空打ち -> IME ON (かな)
                         SetImeStatus(true);
                     }
+                    else if (wasCombo)
+                    {
+                        NativeMethods.EmulateKey(NativeMethods.VK_RMENU, up: true);
+                    }
+
+                    return true; // 右Alt Upイベントをフック消費
                 }
                 else if (isCapsLock && CurrentCapsLockMode == CapsLockMode.ImeToggle)
                 {
@@ -106,29 +138,18 @@ namespace Ule4Jis.Net
 
                     if (shouldToggle)
                     {
-                        // CapsLock空打ち -> IMEトグル
                         ToggleImeStatus();
-                        return true; // 元のCapsLockキーイベントを消費してCapsロック発動を阻止
+                        return true;
                     }
                 }
             }
 
-            // CapsLockモードがImeToggleかつCapsLockキーダウン時のイベントも消費
             if (isCapsLock && CurrentCapsLockMode == CapsLockMode.ImeToggle)
             {
                 return true;
             }
 
             return false;
-        }
-
-        /// <summary>
-        /// Alt単打ち時にWindowsのメニューバーがアクティブになり未確定文字列が確定してしまうのを防ぐダミーキー送信
-        /// </summary>
-        private static void SuppressMenuFocus()
-        {
-            NativeMethods.EmulateKey(0xFF, up: false);
-            NativeMethods.EmulateKey(0xFF, up: true);
         }
 
         private static bool IsModifierKey(uint vkCode)
@@ -240,15 +261,13 @@ namespace Ule4Jis.Net
                 }
             }
 
-            // 2. メッセージ送信後も状態が一致しない場合の強力なキー補填
+            // 2. メッセージ送信後も状態が一致しない場合の補填
             bool currentStatus = GetImeStatus();
             if (enable && !currentStatus)
             {
-                // IMEをONにしたいのにまだOFFの場合 -> VK_KANJI / VK_IME_ON 送信
                 NativeMethods.EmulateKey(NativeMethods.VK_IME_ON, up: false);
                 NativeMethods.EmulateKey(NativeMethods.VK_IME_ON, up: true);
-                
-                // 再確認してだめなら VK_KANJI
+
                 if (!GetImeStatus())
                 {
                     NativeMethods.EmulateKey(NativeMethods.VK_KANJI, up: false);
@@ -257,7 +276,6 @@ namespace Ule4Jis.Net
             }
             else if (!enable && currentStatus)
             {
-                // IMEをOFFにしたいのにまだONの場合 -> VK_IME_OFF / VK_KANJI 送信
                 NativeMethods.EmulateKey(NativeMethods.VK_IME_OFF, up: false);
                 NativeMethods.EmulateKey(NativeMethods.VK_IME_OFF, up: true);
 
