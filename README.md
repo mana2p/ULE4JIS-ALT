@@ -1,6 +1,6 @@
-# ULE4JIS
+# ULE4JIS-ALT
 
-約15年前にC++で開発されたオリジナル版 [dezz/ULE4JIS](https://github.com/dezz/ULE4JIS) を、最新の **.NET 9 (C#)** 環境へ移植・再構築したアプリケーションです。
+オリジナル版 [dezz/ULE4JIS](https://github.com/dezz/ULE4JIS) を、最新の **.NET 9 (C#)** 環境へ移植・再構築したアプリケーションです。
 
 Windowsのキーボード設定を **JIS (日本語配列)** にしたまま **US (英語配列)** キーボードを入力・エミュレートするオリジナル機能に加え、**左右Altキーの単体押しによるIME切り替え・カタカナ変換機能** を追加しています。
 
