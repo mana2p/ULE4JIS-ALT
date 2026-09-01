@@ -1,4 +1,4 @@
-# ULE4JIS + Alt-IME (.NET 9 Edition)
+# ULE4JIS
 
 JIS (日本語) キーボードで US (英語) 配列の入力をエミュレートする **ULE4JIS** をモダンな **.NET 9 (C#)** へ完全移植・再構築し、さらに左右 Alt キーの単体押し（空打ち）での IME 切り替え（**alt-ime-ahk 互換**）や **CapsLock カスタマイズ機能 (sgk/ULE4JIS 互換)**、そして **レトロなドット絵（ピクセルアート）キーキャップアイコン** を追加した統合ツールです。
 
@@ -31,7 +31,7 @@ JIS (日本語) キーボードで US (英語) 配列の入力をエミュレー
 
 ## 🔄 オリジナル (dezz/ULE4JIS) との主な違い
 
-| 項目 | オリジナル (dezz/ULE4JIS) | 本プロジェクト (ULE4JIS + Alt-IME) |
+| 項目 | オリジナル (dezz/ULE4JIS) | 本プロジェクト (ULE4JIS) |
 | :--- | :--- | :--- |
 | **開発言語 / FW** | C++ (MFC / Boost ライブラリ依存) | **C# (.NET 9.0 / WinForms / P/Invoke)** |
 | **ビルド環境** | Visual Studio 2005/2008 (古いC++環境が必要) | **.NET 9.0 SDK (`dotnet build` / `dotnet publish` で一発ビルド可能)** |

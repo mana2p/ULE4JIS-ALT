@@ -61,7 +61,7 @@ namespace Ule4Jis.Net
 
             _notifyIcon = new NotifyIcon
             {
-                Text = "ULE4JIS + Alt-IME (.NET 9)",
+                Text = "ULE4JIS",
                 ContextMenuStrip = contextMenu,
                 Visible = true
             };
