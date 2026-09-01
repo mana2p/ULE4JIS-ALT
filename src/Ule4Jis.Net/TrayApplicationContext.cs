@@ -15,6 +15,7 @@ namespace Ule4Jis.Net
         private readonly ToolStripMenuItem _capsDisabledMenuItem;
         private readonly ToolStripMenuItem _startupMenuItem;
 
+        private Icon? _currentIcon;
         private const string AppName = "Ule4Jis.Net";
         private const string RegistryRunPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
 
@@ -60,14 +61,28 @@ namespace Ule4Jis.Net
 
             _notifyIcon = new NotifyIcon
             {
-                Icon = SystemIcons.Application,
                 Text = "ULE4JIS + Alt-IME (.NET 9)",
                 ContextMenuStrip = contextMenu,
                 Visible = true
             };
 
+            // 初期アイコン更新
+            UpdateTrayIcon();
+
             // フック開始
             KeyboardHook.Start();
+        }
+
+        private void UpdateTrayIcon()
+        {
+            Icon oldIcon = _currentIcon!;
+            _currentIcon = IconGenerator.CreatePixelKeyIcon(KeyboardHook.EmulationEnabled);
+            _notifyIcon.Icon = _currentIcon;
+
+            if (oldIcon != null)
+            {
+                oldIcon.Dispose();
+            }
         }
 
         private void SetCapsLockMode(CapsLockMode mode)
@@ -81,6 +96,7 @@ namespace Ule4Jis.Net
         {
             KeyboardHook.EmulationEnabled = !KeyboardHook.EmulationEnabled;
             _emulationMenuItem.Checked = KeyboardHook.EmulationEnabled;
+            UpdateTrayIcon();
         }
 
         private void OnToggleAltIme(object? sender, EventArgs e)
@@ -124,6 +140,7 @@ namespace Ule4Jis.Net
             KeyboardHook.Stop();
             _notifyIcon.Visible = false;
             _notifyIcon.Dispose();
+            _currentIcon?.Dispose();
             Application.Exit();
         }
     }
