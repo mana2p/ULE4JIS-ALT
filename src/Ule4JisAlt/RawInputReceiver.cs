@@ -123,18 +123,25 @@ namespace Ule4Jis.Net
                 string path = sb.ToString();
                 LastDevicePath = path;
 
-                // ノートPC内蔵キーボード (ACPI / RDP / Virtual) 以外の USB/HID キーボードを外付けと判定
-                // 例: \\?\HID#VID_xxxx... (USB/Bluetooth外付けキーボード)
-                // 内蔵キーボード例: \\?\ACPI#PNP0303... などのACPI接続
                 string upperPath = path.ToUpperInvariant();
 
-                if (upperPath.Contains("ACPI") || upperPath.Contains("RDP_KBD") || upperPath.Contains("ROOT_KBD"))
+                // 1. ノートPC内蔵キーボード識別子 (PS/2, ACPI, I2C 内蔵バス)
+                if (upperPath.Contains("ACPI") ||
+                    upperPath.Contains("PNP0303") ||
+                    upperPath.Contains("PNP030B") ||
+                    upperPath.Contains("PNP0C50") ||
+                    upperPath.Contains("RDP_KBD") ||
+                    upperPath.Contains("ROOT_KBD") ||
+                    upperPath.Contains("I2C"))
                 {
                     return false; // 内蔵キーボード
                 }
 
-                // USB / Bluetooth などの外付け HID キーボード
-                if (upperPath.Contains("HID#") || upperPath.Contains("USB#"))
+                // 2. 外付け USB / Bluetooth キーボード識別子
+                if (upperPath.Contains("USB") ||
+                    upperPath.Contains("BTHENUM") ||
+                    upperPath.Contains("BLUETOOTH") ||
+                    upperPath.Contains("VID_"))
                 {
                     return true; // 外付けキーボード
                 }
