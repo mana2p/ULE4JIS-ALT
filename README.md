@@ -40,7 +40,7 @@
 
 ## 🚀 使い方 / ダウンロード
 
-1. **[最新バージョンのダウンロード (ULE4JIS-ALT.exe)](https://raw.githubusercontent.com/ntakeshitgcom/ULE4JIS/master/publish/ULE4JIS-ALT.exe)**
+1. **[最新バージョンのダウンロード (ULE4JIS-ALT.exe)](https://raw.githubusercontent.com/mana2p/ULE4JIS-ALT/master/publish/ULE4JIS-ALT.exe)**
 2. ダウンロードした `ULE4JIS-ALT.exe` を実行するだけで、タスクバーの通知領域（トレイアイコン）に常駐します。
 3. トレイアイコンを右クリックすることで、各機能の ON / OFF 切り替えや自動識別、Windows 起動時の自動起動を設定できます。
 
