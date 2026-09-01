@@ -1,50 +1,34 @@
 # ULE4JIS
 
-Windowsのキーボード設定を **JIS (日本語配列)** にしたまま、物理的な **US (英語配列)** キーボードでの入力を快適に行うための常駐アプリケーションです。
+約15年前にC++で開発されたオリジナル版 [dezz/ULE4JIS](https://github.com/dezz/ULE4JIS) を、最新の **.NET 9 (C#)** 環境へ移植・再構築したアプリケーションです。
 
-名作ツールであるオリジナル [dezz/ULE4JIS](https://github.com/dezz/ULE4JIS) に深いリスペクトを捧げ、モダンな **.NET 9 (C#)** 環境へ再構築するとともに、左右AltキーによるワンタッチIME切替やカタカナ変換、CapsLockの柔軟な制御機能を統合しました。
-
----
-
-## ✨ 主な機能 (Features)
-
-### 1. JIS設定のままUS配列入力を再現 (ULE4JIS)
-- `Shift + 2` で `@`、`Shift + 6` で `^`、`Shift + 7` で `&` など、JIS設定のままUSキーボードの印字通りのキー入力を実現します。
-- `` ` `` `~` `!` `@` `#` `$` `%` `^` `&` `*` `(` `)` `_` `+` `=` `[` `]` `{` `}` `;` `:` `'` `"` `\` `|` の全キーマッピングに対応しています。
-
-### 2. 左右 Alt 空打ちによるスマートな IME / カタカナ変換
-- **右 Alt キーの単体押し (空打ち)**
-  - 強制的に **日本語入力 (IME ON)** に切り替えます。
-- **左 Alt キーの単体押し (空打ち)**
-  - **未確定文字の入力中**: 無変換キー (`VK_NONCONVERT`) として機能し、一発で **全角/半角カタカナ変換** を行います。
-  - **何も入力していない状態**: 強制的に **英語入力 (IME OFF)** に切り替えます。
-
-### 3. CapsLock キーの長押し対応 & 自動消灯
-- **短押し (0.5秒未満)**
-  - **IMEのトグル切り替え** (ON / OFF) として軽快に動作します。
-- **長押し (0.5秒以上)**
-  - 本来の **CapsLock 機能 (大文字固定 ON/OFF)** が発動します。
-- **起動時自動消灯**
-  - アプリ起動時、CapsLock LED が点灯している場合は自動的に解除・消灯します。
-
-### 4. ドット絵（ピクセルアート）キーキャップアイコン
-- タスクトレイ（16x16ピクセル）およびアプリケーションアイコンに、レトロで親しみやすい **ドット絵キーキャップ風アイコン** を採用。
-- **有効 (ON)**: クラシックブルーのピクセル「U」キーキャップ
-- **一時停止 (OFF)**: シックなダークグレーのピクセルキーキャップ
+Windowsのキーボード設定を **JIS (日本語配列)** にしたまま **US (英語配列)** キーボードを入力・エミュレートするオリジナル機能に加え、**左右Altキーの単体押しによるIME切り替え・カタカナ変換機能** を追加しています。
 
 ---
 
-## 🛠️ ビルドと実行 (How to Build & Run)
+## ⚡ 主な特徴 (Features)
+
+- **.NET 9 (C#) での再構築**
+  - 最新の .NET 9 環境に対応し、約160KBの超軽量・単一実行ファイル (`.exe`) として動作します。
+- **JIS設定のままUS配列入力を再現 (ULE4JIS)**
+  - `Shift + 2` で `@`、`Shift + 6` で `^` など、JISキーボード設定のままUSキーボードの印字通りに入力できます。
+- **左右 Alt 空打ちによる IME 切り替え & カタカナ変換 (alt-ime-ahk 互換)**
+  - **右 Alt キー単押し**: 日本語入力 (IME ON)
+  - **左 Alt キー単押し**: 入力中は **無変換（全角/半角カタカナ変換）**、未入力時は **英語入力 (IME OFF)**
+- **CapsLock の挙動拡張**
+  - 短押しで **IMEトグル**、0.5秒長押しで **本来のCapsLock (大文字固定)** として動作。起動時の CapsLock LED 自動消灯にも対応。
+- **ドット絵キーキャップアイコン**
+  - タスクトレイおよび実行ファイルアイコンにドット絵キーキャップデザインを採用。
+
+---
+
+## 🛠️ ビルド手順 (How to Build)
 
 ### 必須環境
-- [Windows 10 / 11 (x64)](https://www.microsoft.com/windows)
-- [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
-
-### ビルド手順
-リポジトリ直下で以下のコマンドを実行することで、単一の実行ファイル (`.exe`) を生成できます。
+- [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) (Windows x64)
 
 ```powershell
-# リリース用単一実行ファイルのパブリッシュ
+# 単一実行ファイルのパブリッシュ
 dotnet publish src/Ule4Jis.Net -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
 ```
 
@@ -53,13 +37,7 @@ dotnet publish src/Ule4Jis.Net -c Release -r win-x64 --self-contained false -p:P
 
 ---
 
-## 🙏 クレジット・謝辞 (Credits & Acknowledgments)
+## 🙏 クレジット (Credits)
 
-本プロジェクトは、以下の素晴らしいオープンソースソフトウェアおよびアイデアに強くインスパイアされ、感謝とともに開発されました。
-
-- **オリジナルの ULE4JIS 開発者様**: [dezz/ULE4JIS](https://github.com/dezz/ULE4JIS)
-  - JIS設定下でUS配列入力を実現する素晴らしい構想とマッピングロジックの原点です。
-- **Alt IME 切り替えのアイデア**: [karakaram/alt-ime-ahk](https://github.com/karakaram/alt-ime-ahk)
-  - 左右Altキーの空打ちによる直感的なIME切替スタイルの原点です。
-- **CapsLock 拡張のアイデア**: [sgk/ULE4JIS](https://github.com/sgk/ULE4JIS)
-  - CapsLockキーへの機能割り当てとLED制御のアイデアの原点です。
+- **オリジナル C++ 版**: [dezz/ULE4JIS](https://github.com/dezz/ULE4JIS)
+- **Alt IME 切り替え**: [karakaram/alt-ime-ahk](https://github.com/karakaram/alt-ime-ahk)
