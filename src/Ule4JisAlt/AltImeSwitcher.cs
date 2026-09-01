@@ -45,8 +45,8 @@ namespace Ule4Jis.Net
                     if (!_capsDown)
                     {
                         _capsDown = true;
-                        // 単体押しで本来の CapsLock 信号 (Shift + CapsLock) を発行！
-                        NativeMethods.SendCapsLockSignal();
+                        // 単体押しでフォーカス非依存の物理 CapsLock トグルを発動！
+                        NativeMethods.ExecuteCapsLockToggleGlobal();
                     }
                 }
                 else if (isUp)
@@ -175,8 +175,8 @@ namespace Ule4Jis.Net
                 _capsTimer?.Dispose();
                 _capsTimer = null;
 
-                // 300ms 経過で長押し確定 -> 本来の CapsLock 信号 (Shift + CapsLock) を発行！
-                NativeMethods.SendCapsLockSignal();
+                // 300ms 経過で長押し確定 -> フォーカス非依存の物理 CapsLock トグルを発動！
+                NativeMethods.ExecuteCapsLockToggleGlobal();
             }
         }
 

@@ -112,6 +112,12 @@ namespace Ule4Jis.Net
         public static extern short GetKeyState(int nVirtKey);
 
         [DllImport("user32.dll")]
+        public static extern bool GetKeyboardState(byte[] lpKeyState);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetKeyboardState(byte[] lpKeyState);
+
+        [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
 
         [DllImport("user32.dll")]
@@ -139,14 +145,21 @@ namespace Ule4Jis.Net
         }
 
         /// <summary>
-        /// Windowsにおいて「本来のCapsLock (大文字固定 ON/OFF)」を確実に発動させる唯一絶対の信号 (Shift + CapsLock) を送信する。
+        /// フォーカス位置（文字入力欄／非入力欄）に関わらず、システム全体の CapsLock 状態（大文字固定 ON/OFF）を確実にトグル反転させる。
         /// </summary>
-        public static void SendCapsLockSignal()
+        public static void ExecuteCapsLockToggleGlobal()
         {
-            EmulateKey(VK_LSHIFT, up: false);
+            // 1. keybd_event で VK_CAPITAL (0x14) を送信
             EmulateKey(VK_CAPITAL, up: false);
             EmulateKey(VK_CAPITAL, up: true);
-            EmulateKey(VK_LSHIFT, up: true);
+
+            // 2. システムキーボードステートテーブルの CapsLock ロックビット (0x01) を直接反転
+            byte[] keyState = new byte[256];
+            if (GetKeyboardState(keyState))
+            {
+                keyState[VK_CAPITAL] ^= 1; // bit 0 反転
+                SetKeyboardState(keyState);
+            }
         }
 
         private static bool IsExtendedKey(byte vkCode)
@@ -193,7 +206,7 @@ namespace Ule4Jis.Net
         {
             if (IsCapsLockOn())
             {
-                SendCapsLockSignal();
+                ExecuteCapsLockToggleGlobal();
             }
         }
     }
