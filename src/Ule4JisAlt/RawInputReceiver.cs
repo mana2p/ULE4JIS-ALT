@@ -1,59 +1,45 @@
 using System;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 
 namespace Ule4Jis.Net
 {
+    /// <summary>
+    /// Win32 Raw Input API を使用し、現在システムに「外付けUSB/Bluetoothキーボード」が接続されているかをリアルタイム監視する。
+    /// キーを打鍵する前の時点で接続状態が判定済みのため、1文字目から100%確実にUS配列エミュレーションが動作する。
+    /// </summary>
     public class RawInputReceiver : NativeWindow, IDisposable
     {
         private const int WM_INPUT = 0x00FF;
-        private const uint RID_INPUT = 0x10000003;
+        private const int WM_DEVICECHANGE = 0x0219;
+
+        private const uint RIM_TYPEKEYBOARD = 1;
         private const uint RIDI_DEVICENAME = 0x20000007;
 
-        private const ushort HID_USAGE_PAGE_GENERIC = 0x01;
-        private const ushort HID_USAGE_KEYBOARD = 0x06;
-        private const uint RIDEV_INPUTSINK = 0x0100;
-
         [StructLayout(LayoutKind.Sequential)]
-        private struct RAWINPUTDEVICE
+        private struct RAWINPUTDEVICELIST
         {
-            public ushort usUsagePage;
-            public ushort usUsage;
-            public uint dwFlags;
-            public IntPtr hwndTarget;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct RAWINPUTHEADER
-        {
-            public uint dwType;
-            public uint dwSize;
             public IntPtr hDevice;
-            public IntPtr wParam;
+            public uint dwType;
         }
 
         [DllImport("user32.dll", SetLastError = true)]
-        private static extern bool RegisterRawInputDevices(RAWINPUTDEVICE[] pRawInputDevices, uint uiNumDevices, uint cbSize);
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern uint GetRawInputData(IntPtr hRawInput, uint uiCommand, IntPtr pData, ref uint pcbSize, uint cbSizeHeader);
+        private static extern uint GetRawInputDeviceList([Out] RAWINPUTDEVICELIST[] pRawInputDeviceList, ref uint puiNumDevices, uint cbSize);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern uint GetRawInputDeviceInfo(IntPtr hDevice, uint uiCommand, [Out] StringBuilder pData, ref uint pcbSize);
 
-        private static readonly ConcurrentDictionary<IntPtr, bool> _deviceIsExternalCache = new ConcurrentDictionary<IntPtr, bool>();
+        /// <summary>
+        /// 現在、外付けUSB/Bluetoothキーボードが接続されているかどうか
+        /// </summary>
+        public static bool IsExternalKeyboardConnected { get; private set; } = false;
 
         /// <summary>
-        /// 直近にキーが入力された物理キーボードが外付けキーボードかどうか
+        /// 検出された外付けキーボードのリスト（デバッグ用）
         /// </summary>
-        public static bool IsLastInputFromExternal { get; private set; } = false;
-
-        /// <summary>
-        /// 直近の物理キーボードのデバイスパス
-        /// </summary>
-        public static string LastDevicePath { get; private set; } = string.Empty;
+        public static string LastDetectedKeyboardsSummary { get; private set; } = string.Empty;
 
         /// <summary>
         /// 自動判別機能の有効/無効
@@ -63,91 +49,89 @@ namespace Ule4Jis.Net
         public RawInputReceiver()
         {
             CreateHandle(new CreateParams());
-
-            RAWINPUTDEVICE[] rid = new RAWINPUTDEVICE[1];
-            rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
-            rid[0].usUsage = HID_USAGE_KEYBOARD;
-            rid[0].dwFlags = RIDEV_INPUTSINK; // バックグラウンドでも受信
-            rid[0].hwndTarget = Handle;
-
-            RegisterRawInputDevices(rid, 1, (uint)Marshal.SizeOf(typeof(RAWINPUTDEVICE)));
+            RefreshConnectedKeyboards();
         }
 
         protected override void WndProc(ref Message m)
         {
-            if (m.Msg == WM_INPUT && AutoDetectionEnabled)
+            // USBデバイスの接続・切断イベント (WM_DEVICECHANGE) または Raw Input メッセージでキーボード一覧を再チェック
+            if (m.Msg == WM_DEVICECHANGE || m.Msg == WM_INPUT)
             {
-                ProcessRawInput(m.LParam);
+                RefreshConnectedKeyboards();
             }
             base.WndProc(ref m);
         }
 
-        private static void ProcessRawInput(IntPtr hRawInput)
+        /// <summary>
+        /// 現在システムに接続されているキーボードデバイス一覧をチェックし、外付けキーボードの有無を即座に判定
+        /// </summary>
+        public static void RefreshConnectedKeyboards()
         {
-            uint dwSize = 0;
-            uint headerSize = (uint)Marshal.SizeOf(typeof(RAWINPUTHEADER));
-
-            GetRawInputData(hRawInput, RID_INPUT, IntPtr.Zero, ref dwSize, headerSize);
-            if (dwSize == 0) return;
-
-            IntPtr buffer = Marshal.AllocHGlobal((int)dwSize);
             try
             {
-                if (GetRawInputData(hRawInput, RID_INPUT, buffer, ref dwSize, headerSize) == dwSize)
-                {
-                    RAWINPUTHEADER header = Marshal.PtrToStructure<RAWINPUTHEADER>(buffer);
-                    IntPtr hDevice = header.hDevice;
+                uint deviceCount = 0;
+                uint size = (uint)Marshal.SizeOf(typeof(RAWINPUTDEVICELIST));
 
-                    if (hDevice != IntPtr.Zero)
+                if (GetRawInputDeviceList(null!, ref deviceCount, size) != 0 || deviceCount == 0)
+                {
+                    return;
+                }
+
+                RAWINPUTDEVICELIST[] devices = new RAWINPUTDEVICELIST[deviceCount];
+                if (GetRawInputDeviceList(devices, ref deviceCount, size) == 0xFFFFFFFF)
+                {
+                    return;
+                }
+
+                bool foundExternal = false;
+                List<string> detectedList = new List<string>();
+
+                foreach (var device in devices)
+                {
+                    if (device.dwType == RIM_TYPEKEYBOARD)
                     {
-                        bool isExternal = _deviceIsExternalCache.GetOrAdd(hDevice, CheckIfDeviceIsExternal);
-                        IsLastInputFromExternal = isExternal;
+                        uint pcbSize = 0;
+                        GetRawInputDeviceInfo(device.hDevice, RIDI_DEVICENAME, null!, ref pcbSize);
+                        if (pcbSize == 0) continue;
+
+                        StringBuilder sb = new StringBuilder((int)pcbSize);
+                        if (GetRawInputDeviceInfo(device.hDevice, RIDI_DEVICENAME, sb, ref pcbSize) > 0)
+                        {
+                            string path = sb.ToString();
+                            string upperPath = path.ToUpperInvariant();
+
+                            // 内蔵キーボード識別子
+                            bool isBuiltIn = upperPath.Contains("ACPI") ||
+                                             upperPath.Contains("PNP0303") ||
+                                             upperPath.Contains("PNP030B") ||
+                                             upperPath.Contains("PNP0C50") ||
+                                             upperPath.Contains("RDP_KBD") ||
+                                             upperPath.Contains("ROOT_KBD") ||
+                                             upperPath.Contains("I2C");
+
+                            // 外付け USB / Bluetooth キーボード識別子
+                            bool isExternal = !isBuiltIn && (upperPath.Contains("USB") ||
+                                                             upperPath.Contains("BTHENUM") ||
+                                                             upperPath.Contains("BLUETOOTH") ||
+                                                             upperPath.Contains("VID_"));
+
+                            if (isExternal)
+                            {
+                                foundExternal = true;
+                                detectedList.Add($"[外付け] {path}");
+                            }
+                            else
+                            {
+                                detectedList.Add($"[内蔵] {path}");
+                            }
+                        }
                     }
                 }
+
+                IsExternalKeyboardConnected = foundExternal;
+                LastDetectedKeyboardsSummary = string.Join("\n", detectedList);
             }
-            finally
-            {
-                Marshal.FreeHGlobal(buffer);
-            }
-        }
-
-        private static bool CheckIfDeviceIsExternal(IntPtr hDevice)
-        {
-            uint pcbSize = 0;
-            GetRawInputDeviceInfo(hDevice, RIDI_DEVICENAME, null!, ref pcbSize);
-            if (pcbSize == 0) return false;
-
-            StringBuilder sb = new StringBuilder((int)pcbSize);
-            if (GetRawInputDeviceInfo(hDevice, RIDI_DEVICENAME, sb, ref pcbSize) > 0)
-            {
-                string path = sb.ToString();
-                LastDevicePath = path;
-
-                string upperPath = path.ToUpperInvariant();
-
-                // 1. ノートPC内蔵キーボード識別子 (PS/2, ACPI, I2C 内蔵バス)
-                if (upperPath.Contains("ACPI") ||
-                    upperPath.Contains("PNP0303") ||
-                    upperPath.Contains("PNP030B") ||
-                    upperPath.Contains("PNP0C50") ||
-                    upperPath.Contains("RDP_KBD") ||
-                    upperPath.Contains("ROOT_KBD") ||
-                    upperPath.Contains("I2C"))
-                {
-                    return false; // 内蔵キーボード
-                }
-
-                // 2. 外付け USB / Bluetooth キーボード識別子
-                if (upperPath.Contains("USB") ||
-                    upperPath.Contains("BTHENUM") ||
-                    upperPath.Contains("BLUETOOTH") ||
-                    upperPath.Contains("VID_"))
-                {
-                    return true; // 外付けキーボード
-                }
-            }
-
-            return false;
+            catch { }
         }
 
         public void Dispose()

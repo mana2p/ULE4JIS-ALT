@@ -95,10 +95,16 @@ namespace Ule4Jis.Net
 
         private void OnCheckDevice(object? sender, EventArgs e)
         {
-            string deviceType = RawInputReceiver.IsLastInputFromExternal ? "外付け英語キーボード (US配列と判定 -> US変換を適用)" : "ノートPC内蔵キーボード (JIS配列と判定 -> 変換せずスルー)";
-            string path = string.IsNullOrEmpty(RawInputReceiver.LastDevicePath) ? "(まだキーが入力されていません。キーを押してから再度ご確認ください)" : RawInputReceiver.LastDevicePath;
+            RawInputReceiver.RefreshConnectedKeyboards();
+            string status = RawInputReceiver.IsExternalKeyboardConnected
+                ? "【接続検出】外付け英語キーボード (US配列) が検出されました -> US変換を適用"
+                : "【接続検出】ノートPC内蔵キーボード (JIS配列) のみ検出されました -> 変換せずスルー";
 
-            MessageBox.Show($"【直近入力されたキーボード情報】\n\n■ 判定結果: {deviceType}\n\n■ デバイスパス:\n{path}", "ULE4JIS-ALT デバイス判定状態", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            string details = string.IsNullOrEmpty(RawInputReceiver.LastDetectedKeyboardsSummary)
+                ? "(検出されたキーボード情報がありません)"
+                : RawInputReceiver.LastDetectedKeyboardsSummary;
+
+            MessageBox.Show($"【現在のキーボード接続判定】\n\n■ 判定結果:\n{status}\n\n■ 検出されたデバイス一覧:\n{details}", "ULE4JIS-ALT デバイス判定状態", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void OnToggleAltIme(object? sender, EventArgs e)
