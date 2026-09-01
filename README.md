@@ -9,9 +9,9 @@ Windowsのキーボード設定を **JIS (日本語配列)** にしたまま **U
 ## ⚡ 主な特徴 (Features)
 
 - **.NET 9 (C#) での再構築**
-  - 最新の .NET 9 環境に対応し、約160KBの超軽量・単一実行ファイル (`.exe`) として動作します。
+  - 最新の .NET 9 環境に対応し、約160KBの超軽量・単一実行ファイル (`ULE4JIS-ALT.exe`) として動作します。
 - **JIS設定のままUS配列入力を再現 (ULE4JIS)**
-  - `Shift + 2` で `@`、`Shift + 6` で `^` など、JISキーボード設定のままUSキーボードの印字通りに入力できます。
+  - `Shift + 2` で `@` `Shift + 6` で `^` など、JISキーボード設定のままUSキーボードの印字通りに入力できます。
 - **左右 Alt 空打ちによる IME 切り替え & カタカナ変換 (alt-ime-ahk 互換)**
   - **右 Alt キー単押し**: 日本語入力 (IME ON)
   - **左 Alt キー単押し**: 入力中は **無変換（全角/半角カタカナ変換）**、未入力時は **英語入力 (IME OFF)**
@@ -29,11 +29,11 @@ Windowsのキーボード設定を **JIS (日本語配列)** にしたまま **U
 
 ```powershell
 # 単一実行ファイルのパブリッシュ
-dotnet publish src/Ule4Jis.Net -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
+dotnet publish src/Ule4JisAlt -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
 ```
 
 出力先:
-`src/Ule4Jis.Net/bin/Release/net9.0-windows/win-x64/publish/Ule4Jis.Net.exe`
+`src/Ule4JisAlt/bin/Release/net9.0-windows/win-x64/publish/ULE4JIS-ALT.exe`
 
 ---
 
