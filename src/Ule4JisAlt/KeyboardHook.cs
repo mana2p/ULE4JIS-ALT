@@ -62,8 +62,10 @@ namespace Ule4Jis.Net
                 }
 
                 // 2. ULE4JIS US配列マッピング処理
-                // 打鍵する前（事前）に「外付け英語キーボードが接続されているか」が判定済みのため、1文字目から100%確実にUS変換が機能する！
-                bool shouldEmulate = EmulationEnabled && (!RawInputReceiver.AutoDetectionEnabled || RawInputReceiver.IsExternalKeyboardConnected);
+                // 自動判別が有効な場合:
+                // 打鍵されたその瞬間のキーボードが「外付けUSBキーボード」である場合のみ US配列エミュレーションを実行！
+                // ノートPC本体の内蔵キーボードが打鍵された場合は一切変換せずスルー！
+                bool shouldEmulate = EmulationEnabled && (!RawInputReceiver.AutoDetectionEnabled || RawInputReceiver.IsLastInputFromExternal);
 
                 if (shouldEmulate)
                 {
