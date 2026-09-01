@@ -11,7 +11,6 @@ namespace Ule4Jis.Net
         private readonly NotifyIcon _notifyIcon;
         private readonly ToolStripMenuItem _emulationMenuItem;
         private readonly ToolStripMenuItem _autoDetectMenuItem;
-        private readonly ToolStripMenuItem _checkDeviceMenuItem;
         private readonly ToolStripMenuItem _altImeMenuItem;
         private readonly ToolStripMenuItem _startupMenuItem;
         private readonly RawInputReceiver _rawInputReceiver;
@@ -35,8 +34,6 @@ namespace Ule4Jis.Net
                 Checked = RawInputReceiver.AutoDetectionEnabled
             };
 
-            _checkDeviceMenuItem = new ToolStripMenuItem("直近キーボードの判定状態を確認", null, OnCheckDevice);
-
             _altImeMenuItem = new ToolStripMenuItem("左右Alt空打ちIME切り替え", null, OnToggleAltIme)
             {
                 Checked = KeyboardHook.AltImeEnabled
@@ -50,7 +47,6 @@ namespace Ule4Jis.Net
             var contextMenu = new ContextMenuStrip();
             contextMenu.Items.Add(_emulationMenuItem);
             contextMenu.Items.Add(_autoDetectMenuItem);
-            contextMenu.Items.Add(_checkDeviceMenuItem);
             contextMenu.Items.Add(_altImeMenuItem);
             contextMenu.Items.Add(new ToolStripSeparator());
             contextMenu.Items.Add(_startupMenuItem);
@@ -91,19 +87,6 @@ namespace Ule4Jis.Net
         {
             RawInputReceiver.AutoDetectionEnabled = !RawInputReceiver.AutoDetectionEnabled;
             _autoDetectMenuItem.Checked = RawInputReceiver.AutoDetectionEnabled;
-        }
-
-        private void OnCheckDevice(object? sender, EventArgs e)
-        {
-            string deviceType = RawInputReceiver.IsLastInputFromExternal
-                ? "外付け英語キーボード (US配列と判定 -> US変換を適用)"
-                : "ノートPC内蔵キーボード (JIS配列と判定 -> 変換せずスルー)";
-
-            string path = string.IsNullOrEmpty(RawInputReceiver.LastDevicePath)
-                ? "(まだキーが入力されていません。キーを押してから再度ご確認ください)"
-                : RawInputReceiver.LastDevicePath;
-
-            MessageBox.Show($"【直近入力されたキーボード情報】\n\n■ 判定結果: {deviceType}\n\n■ デバイスパス:\n{path}", "ULE4JIS-ALT デバイス判定状態", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void OnToggleAltIme(object? sender, EventArgs e)
