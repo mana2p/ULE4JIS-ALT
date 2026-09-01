@@ -1,2 +1,14 @@
-.DS_Store
+## Visual Studio / .NET ignores
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.pidb
 
+## Exception: Keep root publish directory for direct release download
+!/publish/
+!/publish/**

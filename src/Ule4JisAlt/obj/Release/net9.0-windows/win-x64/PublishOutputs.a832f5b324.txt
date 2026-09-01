@@ -1,2 +1,0 @@
-C:\Users\ntakeshi\DIY\ULE4JIS\src\Ule4JisAlt\bin\Release\net9.0-windows\win-x64\publish\ULE4JIS-ALT.pdb
-C:\Users\ntakeshi\DIY\ULE4JIS\src\Ule4JisAlt\bin\Release\net9.0-windows\win-x64\publish\ULE4JIS-ALT.exe

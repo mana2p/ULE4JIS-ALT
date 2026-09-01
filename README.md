@@ -6,12 +6,22 @@ Windowsのキーボード設定を **JIS (日本語配列)** にしたまま **U
 
 ---
 
+## 📥 ダウンロード (Download)
+
+一般ユーザー向けにビルド済みの実行ファイル (`.exe`) をリポジトリ内に用意しています。
+
+👉 **[ULE4JIS-ALT.exe を直接ダウンロード (最新版)](https://github.com/ntakeshitgcom/ULE4JIS/raw/master/publish/ULE4JIS-ALT.exe)**
+
+ダウンロード後、`ULE4JIS-ALT.exe` をダブルクリックするだけでそのまま起動・常駐します。インストール作業や追加DLLは一切不要です。
+
+---
+
 ## ⚡ 主な特徴 (Features)
 
 - **.NET 9 (C#) での再構築**
-  - 最新の .NET 9 環境に対応し、約160KBの超軽量・単一実行ファイル (`ULE4JIS-ALT.exe`) として動作します。
+  - 最新の .NET 9 環境に対応し、約200KBの超軽量・単一実行ファイル (`ULE4JIS-ALT.exe`) として動作します。
 - **JIS設定のままUS配列入力を再現 (ULE4JIS)**
-  - `Shift + 2` で `@` `Shift + 6` で `^` など、JISキーボード設定のままUSキーボードの印字通りに入力できます。
+  - `Shift + 2` で `@`、`Shift + 6` で `^` など、JISキーボード設定のままUSキーボードの印字通りに入力できます。
 - **左右 Alt 空打ちによる IME 切り替え & カタカナ変換 (alt-ime-ahk 互換)**
   - **右 Alt キー単押し**: 日本語入力 (IME ON)
   - **左 Alt キー単押し**: 入力中は **無変換（全角/半角カタカナ変換）**、未入力時は **英語入力 (IME OFF)**
@@ -24,16 +34,15 @@ Windowsのキーボード設定を **JIS (日本語配列)** にしたまま **U
 
 ## 🛠️ ビルド手順 (How to Build)
 
+ソースコードから自分でビルドしたい場合のコマンドです。
+
 ### 必須環境
 - [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) (Windows x64)
 
 ```powershell
-# 単一実行ファイルのパブリッシュ
-dotnet publish src/Ule4JisAlt -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
+# ルートの publish ディレクトリへパブリッシュ
+dotnet publish src/Ule4JisAlt -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish
 ```
-
-出力先:
-`src/Ule4JisAlt/bin/Release/net9.0-windows/win-x64/publish/ULE4JIS-ALT.exe`
 
 ---
 
