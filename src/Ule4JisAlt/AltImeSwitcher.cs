@@ -20,7 +20,7 @@ namespace Ule4Jis.Net
         private static bool _capsDown = false;
         private static long _capsDownTime = 0;
 
-        private const long LongPressThresholdMs = 350; // 350ms 以上で長押し判定（体感に合わせた快適な閾値）
+        private const long LongPressThresholdMs = 350; // 350ms 以上で長押し判定
 
         public static CapsLockMode CurrentCapsLockMode { get; set; } = CapsLockMode.ImeToggle;
 
@@ -128,9 +128,8 @@ namespace Ule4Jis.Net
                     {
                         if (duration >= LongPressThresholdMs)
                         {
-                            // 350ms 以上の長押し -> 本来の CapsLock 機能 (大文字固定 ON/OFF) を発足
-                            NativeMethods.EmulateKey(NativeMethods.VK_CAPITAL, up: false);
-                            NativeMethods.EmulateKey(NativeMethods.VK_CAPITAL, up: true);
+                            // 350ms 以上の長押し -> 本来の CapsLock 機能 (大文字固定 ON/OFF) を強力トグル
+                            NativeMethods.ToggleCapsLockHardware();
                         }
                         else
                         {

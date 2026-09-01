@@ -111,6 +111,12 @@ namespace Ule4Jis.Net
         public static extern short GetKeyState(int nVirtKey);
 
         [DllImport("user32.dll")]
+        public static extern bool GetKeyboardState(byte[] lpKeyState);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetKeyboardState(byte[] lpKeyState);
+
+        [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
 
         [DllImport("user32.dll")]
@@ -129,11 +135,27 @@ namespace Ule4Jis.Net
         public static void EmulateKey(byte vkCode, bool up)
         {
             uint flags = up ? KEYEVENTF_KEYUP : 0;
+            byte scanCode = (vkCode == VK_CAPITAL) ? (byte)0x3A : (byte)0;
             if (IsExtendedKey(vkCode))
             {
                 flags |= KEYEVENTF_EXTENDEDKEY;
             }
-            keybd_event(vkCode, 0, flags, EmulatorMarker);
+            keybd_event(vkCode, scanCode, flags, EmulatorMarker);
+        }
+
+        public static void ToggleCapsLockHardware()
+        {
+            // スキャンコード 0x3A (CapsLock) を指定してキーイベントを送信
+            EmulateKey(VK_CAPITAL, false);
+            EmulateKey(VK_CAPITAL, true);
+
+            // SetKeyboardState で状態を補填
+            byte[] keys = new byte[256];
+            if (GetKeyboardState(keys))
+            {
+                keys[VK_CAPITAL] = (byte)((keys[VK_CAPITAL] & 0x01) == 0 ? 0x01 : 0x00);
+                SetKeyboardState(keys);
+            }
         }
 
         private static bool IsExtendedKey(byte vkCode)
@@ -180,8 +202,7 @@ namespace Ule4Jis.Net
         {
             if (IsCapsLockOn())
             {
-                EmulateKey(VK_CAPITAL, false); // down
-                EmulateKey(VK_CAPITAL, true);  // up
+                ToggleCapsLockHardware();
             }
         }
     }
