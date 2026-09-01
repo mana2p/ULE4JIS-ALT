@@ -10,8 +10,10 @@ namespace Ule4Jis.Net
     {
         private readonly NotifyIcon _notifyIcon;
         private readonly ToolStripMenuItem _emulationMenuItem;
+        private readonly ToolStripMenuItem _autoDetectMenuItem;
         private readonly ToolStripMenuItem _altImeMenuItem;
         private readonly ToolStripMenuItem _startupMenuItem;
+        private readonly RawInputReceiver _rawInputReceiver;
 
         private Icon? _currentIcon;
         private const string AppName = "ULE4JIS-ALT";
@@ -20,9 +22,17 @@ namespace Ule4Jis.Net
 
         public TrayApplicationContext()
         {
+            // RawInput レシーバーの初期化
+            _rawInputReceiver = new RawInputReceiver();
+
             _emulationMenuItem = new ToolStripMenuItem("US配列エミュレーション (ULE4JIS)", null, OnToggleEmulation)
             {
                 Checked = KeyboardHook.EmulationEnabled
+            };
+
+            _autoDetectMenuItem = new ToolStripMenuItem("キーボード自動識別 (内蔵JIS/外付けUS)", null, OnToggleAutoDetect)
+            {
+                Checked = RawInputReceiver.AutoDetectionEnabled
             };
 
             _altImeMenuItem = new ToolStripMenuItem("左右Alt空打ちIME切り替え", null, OnToggleAltIme)
@@ -37,6 +47,7 @@ namespace Ule4Jis.Net
 
             var contextMenu = new ContextMenuStrip();
             contextMenu.Items.Add(_emulationMenuItem);
+            contextMenu.Items.Add(_autoDetectMenuItem);
             contextMenu.Items.Add(_altImeMenuItem);
             contextMenu.Items.Add(new ToolStripSeparator());
             contextMenu.Items.Add(_startupMenuItem);
@@ -76,6 +87,12 @@ namespace Ule4Jis.Net
             UpdateTrayIcon();
         }
 
+        private void OnToggleAutoDetect(object? sender, EventArgs e)
+        {
+            RawInputReceiver.AutoDetectionEnabled = !RawInputReceiver.AutoDetectionEnabled;
+            _autoDetectMenuItem.Checked = RawInputReceiver.AutoDetectionEnabled;
+        }
+
         private void OnToggleAltIme(object? sender, EventArgs e)
         {
             KeyboardHook.AltImeEnabled = !KeyboardHook.AltImeEnabled;
@@ -89,12 +106,8 @@ namespace Ule4Jis.Net
             _startupMenuItem.Checked = IsStartupEnabled();
         }
 
-        /// <summary>
-        /// タスクスケジューラまたはレジストリに自動起動が登録されているかチェック
-        /// </summary>
         private static bool IsStartupEnabled()
         {
-            // 1. タスクスケジューラの最上位特権タスクをチェック
             try
             {
                 using var process = new Process();
@@ -111,7 +124,6 @@ namespace Ule4Jis.Net
             }
             catch { }
 
-            // 2. 旧レジストリ Run キーのチェック
             try
             {
                 using RegistryKey? key = Registry.CurrentUser.OpenSubKey(RegistryRunPath, false);
@@ -122,15 +134,10 @@ namespace Ule4Jis.Net
             return false;
         }
 
-        /// <summary>
-        /// タスクスケジューラを使って最上位特権 (管理者権限・サイレント自動起動) タスクを全自動作成/削除
-        /// UIPI (管理者権限のVSやターミナルでフックが無効化される問題) を完全防止！
-        /// </summary>
         private static void SetStartup(bool enable)
         {
             string exePath = Application.ExecutablePath;
 
-            // 古いレジストリ Run キーからのクリーンアップ
             try
             {
                 using RegistryKey? key = Registry.CurrentUser.OpenSubKey(RegistryRunPath, true);
@@ -140,7 +147,6 @@ namespace Ule4Jis.Net
 
             if (enable)
             {
-                // schtasks /create /tn "ULE4JIS-ALT" /tr "\"<exePath>\"" /sc onlogon /rl highest /f
                 try
                 {
                     var psi = new ProcessStartInfo
@@ -160,7 +166,6 @@ namespace Ule4Jis.Net
             }
             else
             {
-                // schtasks /delete /tn "ULE4JIS-ALT" /f
                 try
                 {
                     var psi = new ProcessStartInfo
@@ -180,6 +185,7 @@ namespace Ule4Jis.Net
         private void OnExit(object? sender, EventArgs e)
         {
             KeyboardHook.Stop();
+            _rawInputReceiver.Dispose();
             _notifyIcon.Visible = false;
             _notifyIcon.Dispose();
             _currentIcon?.Dispose();

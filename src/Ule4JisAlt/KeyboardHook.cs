@@ -62,7 +62,10 @@ namespace Ule4Jis.Net
                 }
 
                 // 2. ULE4JIS US配列マッピング処理
-                if (EmulationEnabled)
+                // 自動判別が有効で、入力元が外付け英語キーボードの場合はエミュレーションを自動的にスキップ
+                bool shouldEmulate = EmulationEnabled && !(RawInputReceiver.AutoDetectionEnabled && RawInputReceiver.IsLastInputFromExternal);
+
+                if (shouldEmulate)
                 {
                     bool isShift = NativeMethods.IsShiftPressed();
                     if (UsOnJisMapper.TryMapKey(vkCode, isShift, out var result))
