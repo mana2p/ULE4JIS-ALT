@@ -22,6 +22,9 @@ namespace Ule4Jis.Net
 
         public static CapsLockMode CurrentCapsLockMode { get; set; } = CapsLockMode.ImeToggle;
 
+        /// <summary>
+        /// 低レベルキーボードフックからのイベントを処理し、Alt単押しでのIME切替および無変換処理を行う。
+        /// </summary>
         public static bool ProcessKeyEvent(uint vkCode, uint flags, int msg)
         {
             bool isDown = (msg == NativeMethods.WM_KEYDOWN || msg == NativeMethods.WM_SYSKEYDOWN);
@@ -57,22 +60,16 @@ namespace Ule4Jis.Net
                 else if (!IsModifierKey(vkCode))
                 {
                     // 通常キーが押された場合、Altコンボ（Alt+Tabなど）が発生したと判定
-                    if (_leftAltDown)
+                    if (_leftAltDown && !_leftAltCombo)
                     {
-                        if (!_leftAltCombo)
-                        {
-                            _leftAltCombo = true;
-                            // ショートカットキーのために抑止していた Alt Down を遅延送信
-                            NativeMethods.EmulateKey(NativeMethods.VK_LMENU, up: false);
-                        }
+                        _leftAltCombo = true;
+                        // ショートカットキーのために抑止していた Alt Down を遅延送信
+                        NativeMethods.EmulateKey(NativeMethods.VK_LMENU, up: false);
                     }
-                    if (_rightAltDown)
+                    if (_rightAltDown && !_rightAltCombo)
                     {
-                        if (!_rightAltCombo)
-                        {
-                            _rightAltCombo = true;
-                            NativeMethods.EmulateKey(NativeMethods.VK_RMENU, up: false);
-                        }
+                        _rightAltCombo = true;
+                        NativeMethods.EmulateKey(NativeMethods.VK_RMENU, up: false);
                     }
                     if (_capsDown) _capsCombo = true;
                 }
@@ -89,9 +86,10 @@ namespace Ule4Jis.Net
                     if (wasDown && !wasCombo)
                     {
                         // 左Altの単体空打ち:
-                        // 無変換キー (0x8B / VK_NONCONVERT 0x1D) を直接送信！
-                        // WindowsのIME自身が「入力中ならカタカナ変換」「未入力なら英数/IME OFF」をネイティブ処理します。
-                        SendNonConvertKey();
+                        // 無変換キー (VK_NONCONVERT = 0x1D) を送信。
+                        // IMEが「未確定入力中ならカタカナ変換」「未入力なら英数/IME OFF」をネイティブ処理します。
+                        NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: false);
+                        NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: true);
                     }
                     else if (wasCombo)
                     {
@@ -140,20 +138,6 @@ namespace Ule4Jis.Net
             }
 
             return false;
-        }
-
-        /// <summary>
-        /// 無変換キー (0x8B / VK_NONCONVERT 0x1D) を送信する。
-        /// </summary>
-        private static void SendNonConvertKey()
-        {
-            // 0x8B (VK_OEM_AUTO / 無変換)
-            NativeMethods.EmulateKey(0x8B, up: false);
-            NativeMethods.EmulateKey(0x8B, up: true);
-
-            // VK_NONCONVERT (0x1D)
-            NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: false);
-            NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: true);
         }
 
         private static bool IsModifierKey(uint vkCode)
@@ -226,7 +210,7 @@ namespace Ule4Jis.Net
                 }
             }
 
-            // 2. メッセージ送信後も状態が一致しない場合の補填
+            // 2. メッセージ送信後も状態が一致しない場合のキー送信補填
             bool currentStatus = GetImeStatus();
             if (enable && !currentStatus)
             {

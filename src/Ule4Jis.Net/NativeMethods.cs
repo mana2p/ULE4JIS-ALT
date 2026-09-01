@@ -16,39 +16,38 @@ namespace Ule4Jis.Net
         public const byte VK_CAPITAL = 0x14; // Caps Lock
         public const byte VK_SHIFT = 0x10;
         public const byte VK_CONTROL = 0x11;
-        public const byte VK_MENU = 0x12;  // Alt
+        public const byte VK_MENU = 0x12;    // Alt
         public const byte VK_LSHIFT = 0xA0;
         public const byte VK_RSHIFT = 0xA1;
         public const byte VK_LCONTROL = 0xA2;
         public const byte VK_RCONTROL = 0xA3;
-        public const byte VK_LMENU = 0xA4; // Left Alt
-        public const byte VK_RMENU = 0xA5; // Right Alt
+        public const byte VK_LMENU = 0xA4;   // Left Alt
+        public const byte VK_RMENU = 0xA5;   // Right Alt
 
         // IME Virtual Keys & Messages
         public const byte VK_IME_ON = 0x16;
         public const byte VK_IME_OFF = 0x1A;
-        public const byte VK_KANJI = 0x19;
-        public const byte VK_NONCONVERT = 0x1D; // 無変換キー (カタカナ変換)
+        public const byte VK_KANJI = 0x19;   // 漢字 / 半角全角
+        public const byte VK_NONCONVERT = 0x1D; // 無変換キー (カタカナ変換 / 英数)
         public const byte VK_CONVERT = 0x1C;    // 変換キー
 
         public const uint WM_IME_CONTROL = 0x0283;
         public const int IMC_GETOPENSTATUS = 0x0005;
         public const int IMC_SETOPENSTATUS = 0x0006;
-        public const uint GCS_COMPSTR = 0x0008;
 
         // OEM Virtual Keys for JIS / US Layout
-        public const byte VK_OEM_1 = 0xBA;   // JIS: :*, US: ;:
-        public const byte VK_OEM_PLUS = 0xBB; // JIS: ;+, US: =+
+        public const byte VK_OEM_1 = 0xBA;    // JIS: :*, US: ;:
+        public const byte VK_OEM_PLUS = 0xBB;  // JIS: ;+, US: =+
         public const byte VK_OEM_COMMA = 0xBC;
         public const byte VK_OEM_MINUS = 0xBD; // -_
         public const byte VK_OEM_PERIOD = 0xBE;
-        public const byte VK_OEM_2 = 0xBF;   // /?
-        public const byte VK_OEM_3 = 0xC0;   // JIS: @`, US: `~
-        public const byte VK_OEM_4 = 0xDB;   // JIS: [{, US: [{
-        public const byte VK_OEM_5 = 0xDC;   // JIS: \|, US: \|
-        public const byte VK_OEM_6 = 0xDD;   // JIS: ]}, US: ]}
-        public const byte VK_OEM_7 = 0xDE;   // JIS: ^~, US: '"
-        public const byte VK_OEM_102 = 0xE2; // JIS: \_
+        public const byte VK_OEM_2 = 0xBF;    // /?
+        public const byte VK_OEM_3 = 0xC0;    // JIS: @`, US: `~
+        public const byte VK_OEM_4 = 0xDB;    // JIS: [{, US: [{
+        public const byte VK_OEM_5 = 0xDC;    // JIS: \|, US: \|
+        public const byte VK_OEM_6 = 0xDD;    // JIS: ]}, US: ]}
+        public const byte VK_OEM_7 = 0xDE;    // JIS: ^~, US: '"
+        public const byte VK_OEM_102 = 0xE2;  // JIS: \_
         public const byte VK_OEM_ENLW = 0xF3; // 半角/全角
         public const byte VK_OEM_AUTO = 0xF4; // 半角/全角
 
@@ -123,15 +122,6 @@ namespace Ule4Jis.Net
 
         [DllImport("imm32.dll")]
         public static extern IntPtr ImmGetDefaultIMEWnd(IntPtr hWnd);
-
-        [DllImport("imm32.dll")]
-        public static extern IntPtr ImmGetContext(IntPtr hWnd);
-
-        [DllImport("imm32.dll")]
-        public static extern bool ImmReleaseContext(IntPtr hWnd, IntPtr hIMC);
-
-        [DllImport("imm32.dll", CharSet = CharSet.Unicode)]
-        public static extern int ImmGetCompositionString(IntPtr hIMC, uint dwIndex, byte[]? lpBuf, uint dwBufLen);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
