@@ -139,16 +139,14 @@ namespace Ule4Jis.Net
         }
 
         /// <summary>
-        /// フック同期処理から脱出し、非同期タイマー経由で 100% 確実に CapsLock をトグルさせる。
+        /// Windowsにおいて「本来のCapsLock (大文字固定 ON/OFF)」を確実に発動させる唯一絶対の信号 (Shift + CapsLock) を送信する。
         /// </summary>
-        public static void ToggleCapsLockStateAsync()
+        public static void SendCapsLockSignal()
         {
-            Task.Run(async () =>
-            {
-                await Task.Delay(10); // フックのメッセージループ処理完了を待機
-                EmulateKey(VK_CAPITAL, up: false);
-                EmulateKey(VK_CAPITAL, up: true);
-            });
+            EmulateKey(VK_LSHIFT, up: false);
+            EmulateKey(VK_CAPITAL, up: false);
+            EmulateKey(VK_CAPITAL, up: true);
+            EmulateKey(VK_LSHIFT, up: true);
         }
 
         private static bool IsExtendedKey(byte vkCode)
@@ -195,7 +193,7 @@ namespace Ule4Jis.Net
         {
             if (IsCapsLockOn())
             {
-                ToggleCapsLockStateAsync();
+                SendCapsLockSignal();
             }
         }
     }

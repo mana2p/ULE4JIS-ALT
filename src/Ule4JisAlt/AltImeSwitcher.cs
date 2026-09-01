@@ -7,8 +7,8 @@ namespace Ule4Jis.Net
 {
     public enum CapsLockMode
     {
-        Disabled,   // 無効 (通常の CapsLock として単体押しで大文字固定 ON/OFF)
-        ImeToggle   // IME切り替え (短押しで IME トグル、長押しで本来の CapsLock)
+        Disabled,   // 無効 (通常の CapsLock として単体押しで大文字固定 ON/OFF 信号を発行)
+        ImeToggle   // IME切り替え (短押しで IME トグル、長押しで本来の CapsLock 信号を発行)
     }
 
     public static class AltImeSwitcher
@@ -45,15 +45,15 @@ namespace Ule4Jis.Net
                     if (!_capsDown)
                     {
                         _capsDown = true;
-                        // 単体押しで非同期 CapsLock トグルを発動！
-                        NativeMethods.ToggleCapsLockStateAsync();
+                        // 単体押しで本来の CapsLock 信号 (Shift + CapsLock) を発行！
+                        NativeMethods.SendCapsLockSignal();
                     }
                 }
                 else if (isUp)
                 {
                     _capsDown = false;
                 }
-                return true; // イベントをフック消費
+                return true; // OS標準の単体押し＝IMEトグルをフックで消費して撃ち落とす
             }
 
             // 2. CapsLock モードが「IMEをトグル切り替え (ON/OFF)」の場合
@@ -175,8 +175,8 @@ namespace Ule4Jis.Net
                 _capsTimer?.Dispose();
                 _capsTimer = null;
 
-                // 300ms 経過で長押し確定 -> 非同期で確実な CapsLock トグルを発動！
-                NativeMethods.ToggleCapsLockStateAsync();
+                // 300ms 経過で長押し確定 -> 本来の CapsLock 信号 (Shift + CapsLock) を発行！
+                NativeMethods.SendCapsLockSignal();
             }
         }
 
