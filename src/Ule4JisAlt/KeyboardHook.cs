@@ -62,21 +62,26 @@ namespace Ule4JisAlt
                 }
 
                 // 2. ULE4JIS US配列マッピング処理
-                // 自動判別が有効な場合:
-                // 打鍵されたその瞬間のキーボードが「外付けUSBキーボード」である場合のみ US配列エミュレーションを実行！
-                // ノートPC本体の内蔵キーボードが打鍵された場合は一切変換せずスルー！
-                bool shouldEmulate = EmulationEnabled && (!RawInputReceiver.AutoDetectionEnabled || RawInputReceiver.IsLastInputFromExternal);
-
-                if (shouldEmulate)
+                if (EmulationEnabled)
                 {
                     bool isShift = KeyEmulator.IsShiftPressed();
                     if (UsOnJisMapper.TryMapKey(vkCode, isShift, out var result))
                     {
-                        if (result != null)
+                        if (RawInputReceiver.AutoDetectionEnabled)
                         {
-                            UsOnJisMapper.SendEmulatedKey(result, isUp);
+                            // 自動判別有効時: WM_INPUT 到着までキーを保留（初回誤判別を完全防止）
+                            KeyPendingManager.Enqueue(vkCode, isUp, isShift, result);
+                            return (IntPtr)1; // イベントをフック消費
                         }
-                        return (IntPtr)1; // イベントを消費
+                        else if (RawInputReceiver.IsLastInputFromExternal || !RawInputReceiver.AutoDetectionEnabled)
+                        {
+                            // 自動判別無効（常にUSエミュレーション）の場合: 即座に送信
+                            if (result != null)
+                            {
+                                UsOnJisMapper.SendEmulatedKey(result, isUp);
+                            }
+                            return (IntPtr)1; // イベントを消費
+                        }
                     }
                 }
             }

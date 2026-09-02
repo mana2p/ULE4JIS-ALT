@@ -110,6 +110,9 @@ namespace Ule4JisAlt
                         LastInputDeviceHandle = hDevice;
                         bool isExternal = _deviceIsExternalCache.GetOrAdd(hDevice, CheckIfDeviceIsExternal);
                         IsLastInputFromExternal = isExternal;
+
+                        // 保留中のキーを確定したデバイス情報で解放
+                        KeyPendingManager.Flush(isExternal);
                     }
                 }
             }
