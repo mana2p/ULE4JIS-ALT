@@ -113,8 +113,8 @@ namespace Ule4JisAlt
                    vkCode == NativeMethods.VK_LMENU ||
                    vkCode == NativeMethods.VK_RMENU ||
                    vkCode == NativeMethods.VK_CAPITAL ||
-                   vkCode == 0x5B || // Left Windows Key
-                   vkCode == 0x5C;   // Right Windows Key
+                   vkCode == NativeMethods.VK_LWIN ||
+                   vkCode == NativeMethods.VK_RWIN;
         }
 
         public static bool GetImeStatus()

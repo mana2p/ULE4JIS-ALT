@@ -51,6 +51,29 @@ namespace Ule4JisAlt
         public const byte VK_OEM_ENLW = 0xF3;
         public const byte VK_OEM_AUTO = 0xF4;
 
+        // Windows Keys
+        public const byte VK_LWIN = 0x5B;
+        public const byte VK_RWIN = 0x5C;
+
+        // Navigation / Editing Keys
+        public const byte VK_PRIOR     = 0x21;  // Page Up
+        public const byte VK_NEXT      = 0x22;  // Page Down
+        public const byte VK_END       = 0x23;
+        public const byte VK_HOME      = 0x24;
+        public const byte VK_LEFT      = 0x25;
+        public const byte VK_UP        = 0x26;
+        public const byte VK_RIGHT     = 0x27;
+        public const byte VK_DOWN      = 0x28;
+        public const byte VK_PRINT     = 0x2C;
+        public const byte VK_INSERT    = 0x2D;
+        public const byte VK_DELETE    = 0x2E;
+        public const byte VK_CANCEL    = 0x03;
+
+        // Numpad Keys
+        public const byte VK_NUMLOCK   = 0x90;
+        public const byte VK_DIVIDE    = 0x6F;
+        public const byte VK_SEPARATOR = 0x6C;
+
         public const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
         public const uint KEYEVENTF_KEYUP = 0x0002;
 
@@ -147,21 +170,21 @@ namespace Ule4JisAlt
                 case VK_RCONTROL:
                 case VK_RMENU:
                 case VK_RSHIFT:
-                case 0x2D: // VK_INSERT
-                case 0x2E: // VK_DELETE
-                case 0x24: // VK_HOME
-                case 0x23: // VK_END
-                case 0x21: // VK_PRIOR
-                case 0x22: // VK_NEXT
-                case 0x26: // VK_UP
-                case 0x28: // VK_DOWN
-                case 0x27: // VK_RIGHT
-                case 0x25: // VK_LEFT
-                case 0x90: // VK_NUMLOCK
-                case 0x03: // VK_CANCEL
-                case 0x2C: // VK_PRINT
-                case 0x6F: // VK_DIVIDE
-                case 0x6C: // VK_SEPARATOR
+                case VK_INSERT:
+                case VK_DELETE:
+                case VK_HOME:
+                case VK_END:
+                case VK_PRIOR:
+                case VK_NEXT:
+                case VK_UP:
+                case VK_DOWN:
+                case VK_RIGHT:
+                case VK_LEFT:
+                case VK_NUMLOCK:
+                case VK_CANCEL:
+                case VK_PRINT:
+                case VK_DIVIDE:
+                case VK_SEPARATOR:
                     return true;
                 default:
                     return false;
