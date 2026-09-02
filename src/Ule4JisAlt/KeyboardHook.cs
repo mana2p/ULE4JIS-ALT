@@ -69,7 +69,7 @@ namespace Ule4JisAlt
 
                 if (shouldEmulate)
                 {
-                    bool isShift = NativeMethods.IsShiftPressed();
+                    bool isShift = KeyEmulator.IsShiftPressed();
                     if (UsOnJisMapper.TryMapKey(vkCode, isShift, out var result))
                     {
                         if (result != null)

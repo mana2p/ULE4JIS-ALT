@@ -148,54 +148,5 @@ namespace Ule4JisAlt
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-
-        /// <summary>
-        /// キーエミュレーション送信（識別用 EmulatorMarker 付き）
-        /// </summary>
-        public static void EmulateKey(byte vkCode, bool up)
-        {
-            uint flags = up ? KEYEVENTF_KEYUP : 0;
-            byte scanCode = (vkCode == VK_CAPITAL) ? (byte)0x3A : (byte)0;
-            if (IsExtendedKey(vkCode))
-            {
-                flags |= KEYEVENTF_EXTENDEDKEY;
-            }
-            keybd_event(vkCode, scanCode, flags, EmulatorMarker);
-        }
-
-        private static bool IsExtendedKey(byte vkCode)
-        {
-            switch (vkCode)
-            {
-                case VK_RCONTROL:
-                case VK_RMENU:
-                case VK_RSHIFT:
-                case VK_INSERT:
-                case VK_DELETE:
-                case VK_HOME:
-                case VK_END:
-                case VK_PRIOR:
-                case VK_NEXT:
-                case VK_UP:
-                case VK_DOWN:
-                case VK_RIGHT:
-                case VK_LEFT:
-                case VK_NUMLOCK:
-                case VK_CANCEL:
-                case VK_PRINT:
-                case VK_DIVIDE:
-                case VK_SEPARATOR:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        public static bool IsShiftPressed()
-        {
-            return (GetKeyState(VK_SHIFT) & 0x8000) != 0 ||
-                   (GetKeyState(VK_LSHIFT) & 0x8000) != 0 ||
-                   (GetKeyState(VK_RSHIFT) & 0x8000) != 0;
-        }
     }
 }

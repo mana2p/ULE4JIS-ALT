@@ -156,7 +156,7 @@ namespace Ule4JisAlt
             {
                 // PressAndReleaseDecorator: Down/Up両方で Down+Up フルセット送信
                 ExecuteWithShiftAction(result.TargetVkCode, result.ShiftAction, up: false);
-                NativeMethods.EmulateKey(result.TargetVkCode, up: true);
+                KeyEmulator.EmulateKey(result.TargetVkCode, up: true);
             }
             else if (!isUp)
             {
@@ -166,7 +166,7 @@ namespace Ule4JisAlt
             else
             {
                 // KeyUp: Shift操作なし、素のキーUpだけ送信
-                NativeMethods.EmulateKey(result.TargetVkCode, up: true);
+                KeyEmulator.EmulateKey(result.TargetVkCode, up: true);
             }
         }
 
@@ -183,25 +183,25 @@ namespace Ule4JisAlt
                 bool lshift = (NativeMethods.GetKeyState(NativeMethods.VK_LSHIFT) & 0x8000) != 0;
                 bool rshift = (NativeMethods.GetKeyState(NativeMethods.VK_RSHIFT) & 0x8000) != 0;
 
-                if (lshift) NativeMethods.EmulateKey(NativeMethods.VK_LSHIFT, up: true);
-                if (rshift) NativeMethods.EmulateKey(NativeMethods.VK_RSHIFT, up: true);
+                if (lshift) KeyEmulator.EmulateKey(NativeMethods.VK_LSHIFT, up: true);
+                if (rshift) KeyEmulator.EmulateKey(NativeMethods.VK_RSHIFT, up: true);
 
-                NativeMethods.EmulateKey(targetVkCode, up);
+                KeyEmulator.EmulateKey(targetVkCode, up);
 
-                if (lshift) NativeMethods.EmulateKey(NativeMethods.VK_LSHIFT, up: false);
-                if (rshift) NativeMethods.EmulateKey(NativeMethods.VK_RSHIFT, up: false);
+                if (lshift) KeyEmulator.EmulateKey(NativeMethods.VK_LSHIFT, up: false);
+                if (rshift) KeyEmulator.EmulateKey(NativeMethods.VK_RSHIFT, up: false);
             }
             else if (shiftAction == ShiftAction.PressShift)
             {
                 // ShiftPressDecorator::executeDown 完全再現:
-                NativeMethods.EmulateKey(NativeMethods.VK_LSHIFT, up: false);
-                NativeMethods.EmulateKey(targetVkCode, up);
-                NativeMethods.EmulateKey(NativeMethods.VK_LSHIFT, up: true);
+                KeyEmulator.EmulateKey(NativeMethods.VK_LSHIFT, up: false);
+                KeyEmulator.EmulateKey(targetVkCode, up);
+                KeyEmulator.EmulateKey(NativeMethods.VK_LSHIFT, up: true);
             }
             else
             {
                 // KeepState: そのままキー送信
-                NativeMethods.EmulateKey(targetVkCode, up);
+                KeyEmulator.EmulateKey(targetVkCode, up);
             }
         }
     }

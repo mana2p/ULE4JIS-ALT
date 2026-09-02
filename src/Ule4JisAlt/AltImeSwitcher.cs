@@ -46,12 +46,12 @@ namespace Ule4JisAlt
                     if (_leftAltDown && !_leftAltCombo)
                     {
                         _leftAltCombo = true;
-                        NativeMethods.EmulateKey(NativeMethods.VK_LMENU, up: false);
+                        KeyEmulator.EmulateKey(NativeMethods.VK_LMENU, up: false);
                     }
                     if (_rightAltDown && !_rightAltCombo)
                     {
                         _rightAltCombo = true;
-                        NativeMethods.EmulateKey(NativeMethods.VK_RMENU, up: false);
+                        KeyEmulator.EmulateKey(NativeMethods.VK_RMENU, up: false);
                     }
                 }
             }
@@ -67,12 +67,12 @@ namespace Ule4JisAlt
                     if (wasDown && !wasCombo)
                     {
                         // 左Alt単体空打ち -> 無変換キー (VK_NONCONVERT = 0x1D)
-                        NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: false);
-                        NativeMethods.EmulateKey(NativeMethods.VK_NONCONVERT, up: true);
+                        KeyEmulator.EmulateKey(NativeMethods.VK_NONCONVERT, up: false);
+                        KeyEmulator.EmulateKey(NativeMethods.VK_NONCONVERT, up: true);
                     }
                     else if (wasCombo)
                     {
-                        NativeMethods.EmulateKey(NativeMethods.VK_LMENU, up: true);
+                        KeyEmulator.EmulateKey(NativeMethods.VK_LMENU, up: true);
                     }
 
                     return true;
@@ -91,7 +91,7 @@ namespace Ule4JisAlt
                     }
                     else if (wasCombo)
                     {
-                        NativeMethods.EmulateKey(NativeMethods.VK_RMENU, up: true);
+                        KeyEmulator.EmulateKey(NativeMethods.VK_RMENU, up: true);
                     }
 
                     return true;
@@ -169,24 +169,24 @@ namespace Ule4JisAlt
             bool currentStatus = GetImeStatus();
             if (enable && !currentStatus)
             {
-                NativeMethods.EmulateKey(NativeMethods.VK_IME_ON, up: false);
-                NativeMethods.EmulateKey(NativeMethods.VK_IME_ON, up: true);
+                KeyEmulator.EmulateKey(NativeMethods.VK_IME_ON, up: false);
+                KeyEmulator.EmulateKey(NativeMethods.VK_IME_ON, up: true);
 
                 if (!GetImeStatus())
                 {
-                    NativeMethods.EmulateKey(NativeMethods.VK_KANJI, up: false);
-                    NativeMethods.EmulateKey(NativeMethods.VK_KANJI, up: true);
+                    KeyEmulator.EmulateKey(NativeMethods.VK_KANJI, up: false);
+                    KeyEmulator.EmulateKey(NativeMethods.VK_KANJI, up: true);
                 }
             }
             else if (!enable && currentStatus)
             {
-                NativeMethods.EmulateKey(NativeMethods.VK_IME_OFF, up: false);
-                NativeMethods.EmulateKey(NativeMethods.VK_IME_OFF, up: true);
+                KeyEmulator.EmulateKey(NativeMethods.VK_IME_OFF, up: false);
+                KeyEmulator.EmulateKey(NativeMethods.VK_IME_OFF, up: true);
 
                 if (GetImeStatus())
                 {
-                    NativeMethods.EmulateKey(NativeMethods.VK_KANJI, up: false);
-                    NativeMethods.EmulateKey(NativeMethods.VK_KANJI, up: true);
+                    KeyEmulator.EmulateKey(NativeMethods.VK_KANJI, up: false);
+                    KeyEmulator.EmulateKey(NativeMethods.VK_KANJI, up: true);
                 }
             }
         }
