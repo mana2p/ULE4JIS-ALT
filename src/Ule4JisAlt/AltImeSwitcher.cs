@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.InteropServices;
 
 namespace Ule4JisAlt
 {
@@ -87,7 +86,7 @@ namespace Ule4JisAlt
                     if (wasDown && !wasCombo)
                     {
                         // 右Alt単体空打ち -> IME ON (かな)
-                        SetImeStatus(true);
+                        ImeController.SetStatus(true);
                     }
                     else if (wasCombo)
                     {
@@ -115,80 +114,6 @@ namespace Ule4JisAlt
                    vkCode == NativeMethods.VK_CAPITAL ||
                    vkCode == NativeMethods.VK_LWIN ||
                    vkCode == NativeMethods.VK_RWIN;
-        }
-
-        public static bool GetImeStatus()
-        {
-            IntPtr fgWnd = NativeMethods.GetForegroundWindow();
-            if (fgWnd == IntPtr.Zero) return false;
-
-            uint threadId = NativeMethods.GetWindowThreadProcessId(fgWnd, out _);
-            IntPtr targetWnd = fgWnd;
-
-            NativeMethods.GUITHREADINFO gti = new NativeMethods.GUITHREADINFO();
-            gti.cbSize = Marshal.SizeOf(typeof(NativeMethods.GUITHREADINFO));
-            if (NativeMethods.GetGUIThreadInfo(threadId, ref gti) && gti.hwndFocus != IntPtr.Zero)
-            {
-                targetWnd = gti.hwndFocus;
-            }
-
-            IntPtr imeWnd = NativeMethods.ImmGetDefaultIMEWnd(targetWnd);
-            if (imeWnd != IntPtr.Zero)
-            {
-                IntPtr res = NativeMethods.SendMessage(imeWnd, NativeMethods.WM_IME_CONTROL, (IntPtr)NativeMethods.IMC_GETOPENSTATUS, IntPtr.Zero);
-                return res != IntPtr.Zero;
-            }
-
-            return false;
-        }
-
-        public static void SetImeStatus(bool enable)
-        {
-            // 1. WM_IME_CONTROL メッセージによる確実なIME切り替え
-            IntPtr fgWnd = NativeMethods.GetForegroundWindow();
-            if (fgWnd != IntPtr.Zero)
-            {
-                uint threadId = NativeMethods.GetWindowThreadProcessId(fgWnd, out _);
-                IntPtr targetWnd = fgWnd;
-
-                NativeMethods.GUITHREADINFO gti = new NativeMethods.GUITHREADINFO();
-                gti.cbSize = Marshal.SizeOf(typeof(NativeMethods.GUITHREADINFO));
-                if (NativeMethods.GetGUIThreadInfo(threadId, ref gti) && gti.hwndFocus != IntPtr.Zero)
-                {
-                    targetWnd = gti.hwndFocus;
-                }
-
-                IntPtr imeWnd = NativeMethods.ImmGetDefaultIMEWnd(targetWnd);
-                if (imeWnd != IntPtr.Zero)
-                {
-                    NativeMethods.SendMessage(imeWnd, NativeMethods.WM_IME_CONTROL, (IntPtr)NativeMethods.IMC_SETOPENSTATUS, (IntPtr)(enable ? 1 : 0));
-                }
-            }
-
-            // 2. メッセージ送信後も状態が一致しない場合のキー送信補填
-            bool currentStatus = GetImeStatus();
-            if (enable && !currentStatus)
-            {
-                KeyEmulator.EmulateKey(NativeMethods.VK_IME_ON, up: false);
-                KeyEmulator.EmulateKey(NativeMethods.VK_IME_ON, up: true);
-
-                if (!GetImeStatus())
-                {
-                    KeyEmulator.EmulateKey(NativeMethods.VK_KANJI, up: false);
-                    KeyEmulator.EmulateKey(NativeMethods.VK_KANJI, up: true);
-                }
-            }
-            else if (!enable && currentStatus)
-            {
-                KeyEmulator.EmulateKey(NativeMethods.VK_IME_OFF, up: false);
-                KeyEmulator.EmulateKey(NativeMethods.VK_IME_OFF, up: true);
-
-                if (GetImeStatus())
-                {
-                    KeyEmulator.EmulateKey(NativeMethods.VK_KANJI, up: false);
-                    KeyEmulator.EmulateKey(NativeMethods.VK_KANJI, up: true);
-                }
-            }
         }
     }
 }
