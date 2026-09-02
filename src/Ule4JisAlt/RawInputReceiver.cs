@@ -137,17 +137,12 @@ namespace Ule4JisAlt
                 string upperPath = path.ToUpperInvariant();
 
                 // 内蔵キーボード識別子（ノートPC本体の内蔵JISキーボード）
-                // 1. 標準バス・コントローラー接続
+                // 標準バス・コントローラー接続 (ACPI, PS/2 PNP0303/030B, HID-over-I2C PNP0C50 等)
                 if (upperPath.Contains("ACPI") ||
                     upperPath.Contains("PNP0303") ||
                     upperPath.Contains("PNP030B") ||
                     upperPath.Contains("PNP0C50") ||
-                    upperPath.Contains("I2C") ||
-                    // 2. 主要メーカー固有 ACPI 識別子 (富士通 FUJ, Lenovo/ThinkPad LEN/IBM, HP HPQ 等)
-                    upperPath.Contains("FUJ") ||
-                    upperPath.Contains("LEN00") ||
-                    upperPath.Contains("IBM3780") ||
-                    upperPath.Contains("HPQ8"))
+                    upperPath.Contains("I2C"))
                 {
                     return false; // 内蔵キーボード (JIS)
                 }
