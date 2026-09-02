@@ -126,7 +126,7 @@ namespace Ule4JisAlt
         {
             uint pcbSize = 0;
             GetRawInputDeviceInfo(hDevice, RIDI_DEVICENAME, null!, ref pcbSize);
-            if (pcbSize == 0) return false;
+            if (pcbSize == 0) return true; // 不明な場合は外付け扱い
 
             StringBuilder sb = new StringBuilder((int)pcbSize);
             if (GetRawInputDeviceInfo(hDevice, RIDI_DEVICENAME, sb, ref pcbSize) > 0)
@@ -136,7 +136,7 @@ namespace Ule4JisAlt
 
                 string upperPath = path.ToUpperInvariant();
 
-                // 内蔵キーボード識別子
+                // 内蔵キーボード識別子（ノートPC本体の内蔵JISキーボード）
                 if (upperPath.Contains("ACPI") ||
                     upperPath.Contains("PNP0303") ||
                     upperPath.Contains("PNP030B") ||
@@ -147,18 +147,10 @@ namespace Ule4JisAlt
                 {
                     return false; // 内蔵キーボード (JIS)
                 }
-
-                // 外付け USB / Bluetooth キーボード識別子
-                if (upperPath.Contains("USB") ||
-                    upperPath.Contains("BTHENUM") ||
-                    upperPath.Contains("BLUETOOTH") ||
-                    upperPath.Contains("VID_"))
-                {
-                    return true; // 外付けキーボード (US)
-                }
             }
 
-            return false;
+            // 内蔵キーボード以外（USB, Bluetooth, ドングル, VIAL/QMK等）はすべて外付け (US) とみなす
+            return true;
         }
 
         public void Dispose()
