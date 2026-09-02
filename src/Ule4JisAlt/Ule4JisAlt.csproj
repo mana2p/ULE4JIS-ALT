@@ -8,6 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <AssemblyName>ULE4JIS-ALT</AssemblyName>
+    <Version>1.1.0</Version>
   </PropertyGroup>
 
 </Project>
