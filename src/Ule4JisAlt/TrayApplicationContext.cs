@@ -17,6 +17,8 @@ namespace Ule4JisAlt
 
         public TrayApplicationContext()
         {
+            SettingsManager.Load();
+
             _rawInputReceiver = new RawInputReceiver();
 
             _emulationMenuItem = new ToolStripMenuItem("US配列エミュレーション (ULE4JIS)", null, OnToggleEmulation)
@@ -76,18 +78,21 @@ namespace Ule4JisAlt
             KeyboardHook.EmulationEnabled = !KeyboardHook.EmulationEnabled;
             _emulationMenuItem.Checked = KeyboardHook.EmulationEnabled;
             UpdateTrayIcon();
+            SettingsManager.Save();
         }
 
         private void OnToggleAutoDetect(object? sender, EventArgs e)
         {
             RawInputReceiver.AutoDetectionEnabled = !RawInputReceiver.AutoDetectionEnabled;
             _autoDetectMenuItem.Checked = RawInputReceiver.AutoDetectionEnabled;
+            SettingsManager.Save();
         }
 
         private void OnToggleAltIme(object? sender, EventArgs e)
         {
             KeyboardHook.AltImeEnabled = !KeyboardHook.AltImeEnabled;
             _altImeMenuItem.Checked = KeyboardHook.AltImeEnabled;
+            SettingsManager.Save();
         }
 
         private void OnToggleStartup(object? sender, EventArgs e)
