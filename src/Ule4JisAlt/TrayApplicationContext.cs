@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace Ule4Jis.Net
+namespace Ule4JisAlt
 {
     public class TrayApplicationContext : ApplicationContext
     {

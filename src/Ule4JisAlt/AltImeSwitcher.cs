@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Ule4Jis.Net
+namespace Ule4JisAlt
 {
     /// <summary>
     /// 左右 Alt キーの空打ちによるスマートな IME 切り替え制御（macOS風）

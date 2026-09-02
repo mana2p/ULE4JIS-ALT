@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Ule4Jis.Net
+namespace Ule4JisAlt
 {
     internal static class NativeMethods
     {

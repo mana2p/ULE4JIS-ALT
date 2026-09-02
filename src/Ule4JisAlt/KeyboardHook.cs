@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace Ule4Jis.Net
+namespace Ule4JisAlt
 {
     public static class KeyboardHook
     {

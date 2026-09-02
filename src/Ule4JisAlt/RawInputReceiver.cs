@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 
-namespace Ule4Jis.Net
+namespace Ule4JisAlt
 {
     public class RawInputReceiver : NativeWindow, IDisposable
     {

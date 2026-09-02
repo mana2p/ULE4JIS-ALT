@@ -1,6 +1,6 @@
 using System;
 
-namespace Ule4Jis.Net
+namespace Ule4JisAlt
 {
     public enum ShiftAction
     {
