@@ -1,17 +1,15 @@
 using System;
 using System.Diagnostics;
 using System.Windows.Forms;
-using Microsoft.Win32;
 
 namespace Ule4JisAlt
 {
     /// <summary>
-    /// Windows 起動時の自動起動（タスクスケジューラ / レジストリ）を管理する
+    /// Windows 起動時の自動起動（タスクスケジューラ）を管理する
     /// </summary>
     internal static class StartupManager
     {
         private const string AppName = "ULE4JIS-ALT";
-        private const string RegistryRunPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
         private const string TaskSchedulerName = "ULE4JIS-ALT";
 
         public static bool IsEnabled()
@@ -32,26 +30,12 @@ namespace Ule4JisAlt
             }
             catch { }
 
-            try
-            {
-                using RegistryKey? key = Registry.CurrentUser.OpenSubKey(RegistryRunPath, false);
-                if (key?.GetValue(AppName) != null) return true;
-            }
-            catch { }
-
             return false;
         }
 
         public static void SetEnabled(bool enable)
         {
             string exePath = Application.ExecutablePath;
-
-            try
-            {
-                using RegistryKey? key = Registry.CurrentUser.OpenSubKey(RegistryRunPath, true);
-                key?.DeleteValue(AppName, false);
-            }
-            catch { }
 
             if (enable)
             {
