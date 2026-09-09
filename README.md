@@ -58,4 +58,5 @@
 
 ## 📜 クレジット
 
+- **ULE4JIS-ALT**: Copyright (c) 2026 ManatsuP
 - **オリジナル ULE4JIS**: Copyright (c) 2009 DEZZ Networks
