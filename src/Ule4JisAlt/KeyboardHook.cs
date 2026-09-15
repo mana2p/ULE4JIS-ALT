@@ -48,6 +48,9 @@ namespace Ule4JisAlt
                     return NativeMethods.CallNextHookEx(_hookID, nCode, wParam, lParam);
                 }
 
+                // メッセージキューに溜まっている WM_INPUT を同期的にドレインして最新デバイス情報を確定する
+                RawInputReceiver.DrainPendingRawInputMessages();
+
                 uint vkCode = hookStruct.vkCode;
                 bool isUp = (msg == NativeMethods.WM_KEYUP || msg == NativeMethods.WM_SYSKEYUP);
 
@@ -67,15 +70,11 @@ namespace Ule4JisAlt
                     bool isShift = KeyEmulator.IsShiftPressed();
                     if (UsOnJisMapper.TryMapKey(vkCode, isShift, out var result))
                     {
-                        if (RawInputReceiver.AutoDetectionEnabled)
+                        // 自動判別が無効、または直近の入力が外付けキーボードの場合のみエミュレーションを実行
+                        bool shouldEmulate = !RawInputReceiver.AutoDetectionEnabled || RawInputReceiver.IsLastInputFromExternal;
+
+                        if (shouldEmulate)
                         {
-                            // 自動判別有効時: WM_INPUT 到着までキーを保留（初回誤判別を完全防止）
-                            KeyPendingManager.Enqueue(vkCode, isUp, isShift, result);
-                            return (IntPtr)1; // イベントをフック消費
-                        }
-                        else if (RawInputReceiver.IsLastInputFromExternal || !RawInputReceiver.AutoDetectionEnabled)
-                        {
-                            // 自動判別無効（常にUSエミュレーション）の場合: 即座に送信
                             if (result != null)
                             {
                                 UsOnJisMapper.SendEmulatedKey(result, isUp);

@@ -89,6 +89,23 @@ namespace Ule4JisAlt
             base.WndProc(ref m);
         }
 
+        /// <summary>
+        /// メッセージキューに溜まっている未処理の WM_INPUT メッセージを同期的にドレイン（吸い出し）してデバイス状態を更新する
+        /// </summary>
+        public static void DrainPendingRawInputMessages()
+        {
+            if (!AutoDetectionEnabled) return;
+
+            try
+            {
+                while (NativeMethods.PeekMessage(out var msg, IntPtr.Zero, NativeMethods.WM_INPUT, NativeMethods.WM_INPUT, NativeMethods.PM_REMOVE))
+                {
+                    ProcessRawInput(msg.lParam);
+                }
+            }
+            catch { }
+        }
+
         private static void ProcessRawInput(IntPtr hRawInput)
         {
             uint dwSize = 0;
@@ -110,9 +127,6 @@ namespace Ule4JisAlt
                         LastInputDeviceHandle = hDevice;
                         bool isExternal = _deviceIsExternalCache.GetOrAdd(hDevice, CheckIfDeviceIsExternal);
                         IsLastInputFromExternal = isExternal;
-
-                        // 保留中のキーを確定したデバイス情報で解放
-                        KeyPendingManager.Flush(isExternal);
                     }
                 }
             }
