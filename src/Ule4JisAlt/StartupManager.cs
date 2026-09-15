@@ -41,10 +41,16 @@ namespace Ule4JisAlt
             {
                 try
                 {
+                    string safeExePath = exePath.Replace("'", "''");
+                    string psCommand = $"$action = New-ScheduledTaskAction -Execute '{safeExePath}'; " +
+                                      $"$trigger = New-ScheduledTaskTrigger -AtLogOn; " +
+                                      $"$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit 0; " +
+                                      $"Register-ScheduledTask -TaskName '{TaskSchedulerName}' -Action $action -Trigger $trigger -Settings $settings -RunLevel Highest -Force";
+
                     var psi = new ProcessStartInfo
                     {
-                        FileName = "schtasks.exe",
-                        Arguments = $"/create /tn \"{TaskSchedulerName}\" /tr \"\\\"{exePath}\\\"\" /sc onlogon /rl highest /f",
+                        FileName = "powershell.exe",
+                        Arguments = $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"{psCommand}\"",
                         Verb = "runas",
                         UseShellExecute = true
                     };
