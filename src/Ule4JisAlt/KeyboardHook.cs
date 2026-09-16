@@ -10,7 +10,7 @@ namespace Ule4JisAlt
         private static IntPtr _hookID = IntPtr.Zero;
 
         public static bool EmulationEnabled { get; set; } = true;
-        public static LayoutMode CurrentLayoutMode { get; set; } = LayoutMode.ExternalUs;
+        public static LayoutMode CurrentLayoutMode { get; set; } = LayoutMode.InternalJisExternalUs;
         public static bool AltImeEnabled { get; set; } = true;
 
         public static void Start()
@@ -55,62 +55,31 @@ namespace Ule4JisAlt
                 uint vkCode = hookStruct.vkCode;
                 bool isUp = (msg == NativeMethods.WM_KEYUP || msg == NativeMethods.WM_SYSKEYUP);
 
-                // 1. 左右 Alt 空打ち IME 切り替え処理
-                if (AltImeEnabled)
+                // 現在打鍵されているキーボードがUS配列かどうかを判定
+                // - InternalJisExternalUs: 外付けキーボードからの入力がUS配列
+                // - InternalUsExternalJis: 内蔵キーボードからの入力がUS配列
+                bool isExternal = RawInputReceiver.IsLastInputFromExternal;
+                bool isUsKeyboard = (CurrentLayoutMode == LayoutMode.InternalJisExternalUs) ? isExternal : !isExternal;
+                bool shouldEmulate = !RawInputReceiver.AutoDetectionEnabled || isUsKeyboard;
+
+                // US配列キーボード打鍵時のみエミュレーションを適用（JISキーボードは完全ネイティブスルー）
+                if (shouldEmulate)
                 {
-                    bool handled = AltImeSwitcher.ProcessKeyEvent(vkCode, hookStruct.flags, msg);
-                    if (handled)
+                    // 1. 左右 Alt 空打ち IME 切り替え処理 (USキーボードのみ適用)
+                    if (AltImeEnabled)
                     {
-                        return (IntPtr)1; // イベントを消費
+                        bool handled = AltImeSwitcher.ProcessKeyEvent(vkCode, hookStruct.flags, msg);
+                        if (handled)
+                        {
+                            return (IntPtr)1; // イベントを消費
+                        }
                     }
-                }
 
-                // 2. キーボード配列マッピング処理 (ULE4JIS / ULE4US)
-                if (EmulationEnabled)
-                {
-                    bool shouldEmulate = !RawInputReceiver.AutoDetectionEnabled || RawInputReceiver.IsLastInputFromExternal;
-
-                    if (shouldEmulate)
+                    // 2. キーボード配列マッピング処理 (US on JIS)
+                    if (EmulationEnabled)
                     {
                         bool isShift = KeyEmulator.IsShiftPressed();
-
-                        // 外付けJIS化モード時の特殊IMEキー処理
-                        if (CurrentLayoutMode == LayoutMode.ExternalJis)
-                        {
-                            // 1. 半角/全角キー (US配列設定のOSでは ` (VK_OEM_3) と誤認されるため、IMEトグルに変換)
-                            if (!isShift && vkCode == NativeMethods.VK_OEM_3)
-                            {
-                                if (!isUp) // KeyDown 時にトグル
-                                {
-                                    bool currentStatus = ImeController.GetStatus();
-                                    ImeController.SetStatus(!currentStatus);
-                                }
-                                return (IntPtr)1; // ` 文字入力を防ぐため消費
-                            }
-
-                            // 2. 変換キー / ひらがなキー -> 確実に IME ON (かな)
-                            if (vkCode == NativeMethods.VK_CONVERT || hookStruct.scanCode == 0x79 ||
-                                vkCode == NativeMethods.VK_KANA || hookStruct.scanCode == 0x70)
-                            {
-                                if (!isUp)
-                                {
-                                    ImeController.SetStatus(true);
-                                }
-                                return (IntPtr)1; // イベントを消費
-                            }
-
-                            // 3. 無変換キー (VK_NONCONVERT または scanCode 0x7B) -> 確実に IME OFF (英数)
-                            if (vkCode == NativeMethods.VK_NONCONVERT || hookStruct.scanCode == 0x7B)
-                            {
-                                if (!isUp)
-                                {
-                                    ImeController.SetStatus(false);
-                                }
-                                return (IntPtr)1; // イベントを消費
-                            }
-                        }
-
-                        if (KeyMapper.TryMapKey(CurrentLayoutMode, vkCode, isShift, out var result))
+                        if (KeyMapper.TryMapKey(vkCode, isShift, out var result))
                         {
                             if (result != null)
                             {

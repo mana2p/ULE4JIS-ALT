@@ -7,7 +7,7 @@ namespace Ule4JisAlt
     public class AppSettings
     {
         public bool EmulationEnabled { get; set; } = true;
-        public LayoutMode LayoutMode { get; set; } = LayoutMode.ExternalUs;
+        public LayoutMode LayoutMode { get; set; } = LayoutMode.InternalJisExternalUs;
         public bool AutoDetectionEnabled { get; set; } = true;
         public bool AltImeEnabled { get; set; } = true;
     }

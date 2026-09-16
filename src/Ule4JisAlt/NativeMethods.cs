@@ -25,12 +25,10 @@ namespace Ule4JisAlt
         public const byte VK_RMENU = 0xA5;     // Right Alt
 
         // IME Virtual Keys & Messages
-        public const byte VK_KANA = 0x15;
         public const byte VK_IME_ON = 0x16;
         public const byte VK_IME_OFF = 0x1A;
         public const byte VK_KANJI = 0x19;     // 漢字 / 半角全角
         public const byte VK_NONCONVERT = 0x1D; // 無変換キー
-        public const byte VK_CONVERT = 0x1C;    // 変換キー
 
         public const uint WM_IME_CONTROL = 0x0283;
         public const int IMC_GETOPENSTATUS = 0x0005;
@@ -39,10 +37,7 @@ namespace Ule4JisAlt
         // OEM Virtual Keys for JIS / US Layout
         public const byte VK_OEM_1 = 0xBA;
         public const byte VK_OEM_PLUS = 0xBB;
-        public const byte VK_OEM_COMMA = 0xBC;
         public const byte VK_OEM_MINUS = 0xBD;
-        public const byte VK_OEM_PERIOD = 0xBE;
-        public const byte VK_OEM_2 = 0xBF;
         public const byte VK_OEM_3 = 0xC0;
         public const byte VK_OEM_4 = 0xDB;
         public const byte VK_OEM_5 = 0xDC;

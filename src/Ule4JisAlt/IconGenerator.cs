@@ -10,7 +10,7 @@ namespace Ule4JisAlt
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool DestroyIcon(IntPtr handle);
 
-        public static Icon CreatePixelKeyIcon(bool enabled, LayoutMode mode = LayoutMode.ExternalUs)
+        public static Icon CreatePixelKeyIcon(bool enabled, LayoutMode mode = LayoutMode.InternalJisExternalUs)
         {
             using Bitmap bmp = new Bitmap(16, 16);
 
@@ -25,9 +25,9 @@ namespace Ule4JisAlt
 
             if (enabled)
             {
-                if (mode == LayoutMode.ExternalJis)
+                if (mode == LayoutMode.InternalUsExternalJis)
                 {
-                    // ON状態 (外付けJIS)：鮮やかなクリムゾンレッドキーキャップ
+                    // ON状態 (内蔵US / 外付けJIS)：鮮やかなクリムゾンレッドキーキャップ
                     cKeyFace = Color.FromArgb(200, 45, 55);
                     cHighlight = Color.FromArgb(255, 120, 130);
                     cShadow = Color.FromArgb(130, 25, 35);
@@ -35,7 +35,7 @@ namespace Ule4JisAlt
                 }
                 else
                 {
-                    // ON状態 (外付けUS)：レトロ・クラシックブルーキーキャップ
+                    // ON状態 (内蔵JIS / 外付けUS)：レトロ・クラシックブルーキーキャップ
                     cKeyFace = Color.FromArgb(50, 120, 200);
                     cHighlight = Color.FromArgb(130, 190, 255);
                     cShadow = Color.FromArgb(25, 70, 130);
@@ -90,7 +90,7 @@ namespace Ule4JisAlt
             }
 
             // ピクセルアート文字の描画
-            if (mode == LayoutMode.ExternalJis)
+            if (mode == LayoutMode.InternalUsExternalJis)
             {
                 DrawLetterJ(bmp, cText);
             }

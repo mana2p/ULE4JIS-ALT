@@ -4,8 +4,12 @@ namespace Ule4JisAlt
 {
     public enum LayoutMode
     {
-        ExternalUs, // 外付けUS化 (PC本体: JIS) - デフォルト
-        ExternalJis // 外付けJIS化 (PC本体: US)
+        InternalJisExternalUs = 0, // 内蔵: JIS / 外付け: US (デフォルト)
+        InternalUsExternalJis = 1, // 内蔵: US / 外付け: JIS
+
+        // 互換用エイリアス
+        ExternalUs = 0,
+        ExternalJis = 1
     }
 
     public enum ShiftAction
@@ -38,25 +42,10 @@ namespace Ule4JisAlt
     public static class KeyMapper
     {
         /// <summary>
-        /// 現在のレイアウトモードに応じて、キー入力のマッピング判定を行う。
+        /// US配列キーボードをJIS配列OS上で打鍵したときのマッピング判定を行う。
+        /// オリジナル ULE4JIS USonJISStrategy と完全互換。
         /// </summary>
-        public static bool TryMapKey(LayoutMode mode, uint vkCode, bool isShift, out KeyEmulationResult? result)
-        {
-            if (mode == LayoutMode.ExternalUs)
-            {
-                return TryMapUsOnJis(vkCode, isShift, out result);
-            }
-            else
-            {
-                return TryMapJisOnUs(vkCode, isShift, out result);
-            }
-        }
-
-        /// <summary>
-        /// JIS配列環境（OS: JIS）で、外付けUSキーボードを打鍵したときのマッピング。
-        /// オリジナル ULE4JIS USonJISStrategy と完全一致。
-        /// </summary>
-        private static bool TryMapUsOnJis(uint vkCode, bool isShift, out KeyEmulationResult? result)
+        public static bool TryMapKey(uint vkCode, bool isShift, out KeyEmulationResult? result)
         {
             result = null;
 
@@ -156,112 +145,6 @@ namespace Ule4JisAlt
                     case NativeMethods.VK_OEM_ENLW:
                         result = new KeyEmulationResult(NativeMethods.VK_OEM_3, ShiftAction.PressShift, EmulationMode.PressAndRelease);
                         return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// US配列環境（OS: US）で、外付けJISキーボードを打鍵したときのマッピング。
-        /// JISキーボードの印字通りの文字をUS配列OS上に出力する。
-        /// </summary>
-        private static bool TryMapJisOnUs(uint vkCode, bool isShift, out KeyEmulationResult? result)
-        {
-            result = null;
-
-            if (isShift)
-            {
-                switch (vkCode)
-                {
-                    case '2': // Shift+2 (JIS印字: ") -> USドライバでは Shift+' (VK_OEM_7)
-                        result = new KeyEmulationResult(NativeMethods.VK_OEM_7, ShiftAction.KeepState);
-                        return true;
-
-                    case '6': // Shift+6 (JIS印字: &) -> USドライバでは Shift+7
-                        result = new KeyEmulationResult((byte)'7', ShiftAction.KeepState);
-                        return true;
-
-                    case '7': // Shift+7 (JIS印字: ') -> USドライバでは 素の ' (ShiftRelease + VK_OEM_7)
-                        result = new KeyEmulationResult(NativeMethods.VK_OEM_7, ShiftAction.ReleaseShift);
-                        return true;
-
-                    case '8': // Shift+8 (JIS印字: () -> USドライバでは Shift+9
-                        result = new KeyEmulationResult((byte)'9', ShiftAction.KeepState);
-                        return true;
-
-                    case '9': // Shift+9 (JIS印字: )) -> USドライバでは Shift+0
-                        result = new KeyEmulationResult((byte)'0', ShiftAction.KeepState);
-                        return true;
-
-                    case NativeMethods.VK_OEM_MINUS: // Shift+- (JIS印字: =) -> USドライバでは 素の = (ShiftRelease + VK_OEM_PLUS)
-                        result = new KeyEmulationResult(NativeMethods.VK_OEM_PLUS, ShiftAction.ReleaseShift);
-                        return true;
-
-                    case NativeMethods.VK_OEM_PLUS: // 物理^キーのShift (JIS印字: ~) -> USドライバでは Shift+` (VK_OEM_3)
-                        result = new KeyEmulationResult(NativeMethods.VK_OEM_3, ShiftAction.KeepState);
-                        return true;
-
-                    case NativeMethods.VK_OEM_4: // 物理@キーのShift (JIS印字: `) -> USドライバでは 素の ` (ShiftRelease + VK_OEM_3)
-                        result = new KeyEmulationResult(NativeMethods.VK_OEM_3, ShiftAction.ReleaseShift);
-                        return true;
-
-                    case NativeMethods.VK_OEM_6: // 物理[キーのShift (JIS印字: {) -> USドライバでは Shift+[ (VK_OEM_4)
-                        result = new KeyEmulationResult(NativeMethods.VK_OEM_4, ShiftAction.KeepState);
-                        return true;
-
-                    case NativeMethods.VK_OEM_1: // 物理;キーのShift (JIS印字: +) -> USドライバでは Shift+= (VK_OEM_PLUS)
-                        result = new KeyEmulationResult(NativeMethods.VK_OEM_PLUS, ShiftAction.KeepState);
-                        return true;
-
-                    case NativeMethods.VK_OEM_7: // 物理:キーのShift (JIS印字: *) -> USドライバでは Shift+8
-                        result = new KeyEmulationResult((byte)'8', ShiftAction.KeepState);
-                        return true;
-
-                    case NativeMethods.VK_OEM_5: // 物理]キーのShift (JIS印字: }) -> USドライバでは Shift+] (VK_OEM_6)
-                        result = new KeyEmulationResult(NativeMethods.VK_OEM_6, ShiftAction.KeepState);
-                        return true;
-
-                    case NativeMethods.VK_OEM_102: // 物理\(ろ)キーのShift (JIS印字: _) -> USドライバでは Shift+- (VK_OEM_MINUS)
-                        result = new KeyEmulationResult(NativeMethods.VK_OEM_MINUS, ShiftAction.KeepState);
-                        return true;
-
-                    case NativeMethods.VK_OEM_AUTO:
-                        result = null;
-                        return true; // NOP
-                }
-            }
-            else
-            {
-                switch (vkCode)
-                {
-                    case NativeMethods.VK_OEM_PLUS: // 物理^キー (JIS印字: ^) -> USドライバでは Shift+6
-                        result = new KeyEmulationResult((byte)'6', ShiftAction.PressShift);
-                        return true;
-
-                    case NativeMethods.VK_OEM_4: // 物理@キー (JIS印字: @) -> USドライバでは Shift+2
-                        result = new KeyEmulationResult((byte)'2', ShiftAction.PressShift);
-                        return true;
-
-                    case NativeMethods.VK_OEM_6: // 物理[キー (JIS印字: [) -> USドライバでは 素の [ (VK_OEM_4)
-                        result = new KeyEmulationResult(NativeMethods.VK_OEM_4, ShiftAction.KeepState);
-                        return true;
-
-                    case NativeMethods.VK_OEM_7: // 物理:キー (JIS印字: :) -> USドライバでは Shift+; (VK_OEM_1)
-                        result = new KeyEmulationResult(NativeMethods.VK_OEM_1, ShiftAction.PressShift);
-                        return true;
-
-                    case NativeMethods.VK_OEM_5: // 物理]キー (JIS印字: ]) -> USドライバでは 素の ] (VK_OEM_6)
-                        result = new KeyEmulationResult(NativeMethods.VK_OEM_6, ShiftAction.KeepState);
-                        return true;
-
-                    case NativeMethods.VK_OEM_102: // 物理\(ろ)キー (JIS印字: \) -> USドライバでは 素の \ (VK_OEM_5)
-                        result = new KeyEmulationResult(NativeMethods.VK_OEM_5, ShiftAction.KeepState);
-                        return true;
-
-                    case NativeMethods.VK_OEM_AUTO:
-                        result = null;
-                        return true; // NOP
                 }
             }
 

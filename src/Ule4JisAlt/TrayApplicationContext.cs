@@ -28,15 +28,15 @@ namespace Ule4JisAlt
                 Checked = KeyboardHook.EmulationEnabled
             };
 
-            _modeExternalUsMenuItem = new ToolStripMenuItem("  外付けUS化 (PC本体: JIS)", null, OnSelectModeExternalUs)
+            _modeExternalUsMenuItem = new ToolStripMenuItem("  内蔵: JIS / 外付け: US", null, OnSelectModeExternalUs)
             {
-                Checked = KeyboardHook.CurrentLayoutMode == LayoutMode.ExternalUs,
+                Checked = KeyboardHook.CurrentLayoutMode == LayoutMode.InternalJisExternalUs,
                 Enabled = KeyboardHook.EmulationEnabled
             };
 
-            _modeExternalJisMenuItem = new ToolStripMenuItem("  外付けJIS化 (PC本体: US)", null, OnSelectModeExternalJis)
+            _modeExternalJisMenuItem = new ToolStripMenuItem("  内蔵: US / 外付け: JIS", null, OnSelectModeExternalJis)
             {
-                Checked = KeyboardHook.CurrentLayoutMode == LayoutMode.ExternalJis,
+                Checked = KeyboardHook.CurrentLayoutMode == LayoutMode.InternalUsExternalJis,
                 Enabled = KeyboardHook.EmulationEnabled
             };
 
@@ -102,28 +102,18 @@ namespace Ule4JisAlt
 
         private void OnSelectModeExternalUs(object? sender, EventArgs e)
         {
-            KeyboardHook.CurrentLayoutMode = LayoutMode.ExternalUs;
+            KeyboardHook.CurrentLayoutMode = LayoutMode.InternalJisExternalUs;
             _modeExternalUsMenuItem.Checked = true;
             _modeExternalJisMenuItem.Checked = false;
-
-            // 外付けUS化モード時はAlt空打ちIME切り替えを有効化
-            KeyboardHook.AltImeEnabled = true;
-            _altImeMenuItem.Checked = true;
-
             UpdateTrayIcon();
             SettingsManager.Save();
         }
 
         private void OnSelectModeExternalJis(object? sender, EventArgs e)
         {
-            KeyboardHook.CurrentLayoutMode = LayoutMode.ExternalJis;
+            KeyboardHook.CurrentLayoutMode = LayoutMode.InternalUsExternalJis;
             _modeExternalUsMenuItem.Checked = false;
             _modeExternalJisMenuItem.Checked = true;
-
-            // 外付けJIS化モード時は物理キー（変換・無変換）があるためAlt空打ちを自動的にOFF
-            KeyboardHook.AltImeEnabled = false;
-            _altImeMenuItem.Checked = false;
-
             UpdateTrayIcon();
             SettingsManager.Save();
         }
