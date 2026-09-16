@@ -8,6 +8,8 @@ namespace Ule4JisAlt
     {
         private readonly NotifyIcon _notifyIcon;
         private readonly ToolStripMenuItem _emulationMenuItem;
+        private readonly ToolStripMenuItem _modeExternalUsMenuItem;
+        private readonly ToolStripMenuItem _modeExternalJisMenuItem;
         private readonly ToolStripMenuItem _autoDetectMenuItem;
         private readonly ToolStripMenuItem _altImeMenuItem;
         private readonly ToolStripMenuItem _startupMenuItem;
@@ -21,12 +23,24 @@ namespace Ule4JisAlt
 
             _rawInputReceiver = new RawInputReceiver();
 
-            _emulationMenuItem = new ToolStripMenuItem("US配列エミュレーション (ULE4JIS)", null, OnToggleEmulation)
+            _emulationMenuItem = new ToolStripMenuItem("エミュレーション有効", null, OnToggleEmulation)
             {
                 Checked = KeyboardHook.EmulationEnabled
             };
 
-            _autoDetectMenuItem = new ToolStripMenuItem("キーボード自動識別 (内蔵JIS/外付けUS)", null, OnToggleAutoDetect)
+            _modeExternalUsMenuItem = new ToolStripMenuItem("  外付けUS化 (PC本体: JIS)", null, OnSelectModeExternalUs)
+            {
+                Checked = KeyboardHook.CurrentLayoutMode == LayoutMode.ExternalUs,
+                Enabled = KeyboardHook.EmulationEnabled
+            };
+
+            _modeExternalJisMenuItem = new ToolStripMenuItem("  外付けJIS化 (PC本体: US)", null, OnSelectModeExternalJis)
+            {
+                Checked = KeyboardHook.CurrentLayoutMode == LayoutMode.ExternalJis,
+                Enabled = KeyboardHook.EmulationEnabled
+            };
+
+            _autoDetectMenuItem = new ToolStripMenuItem("キーボード自動識別 (内蔵 / 外付け切り替え)", null, OnToggleAutoDetect)
             {
                 Checked = RawInputReceiver.AutoDetectionEnabled
             };
@@ -43,6 +57,9 @@ namespace Ule4JisAlt
 
             var contextMenu = new ContextMenuStrip();
             contextMenu.Items.Add(_emulationMenuItem);
+            contextMenu.Items.Add(_modeExternalUsMenuItem);
+            contextMenu.Items.Add(_modeExternalJisMenuItem);
+            contextMenu.Items.Add(new ToolStripSeparator());
             contextMenu.Items.Add(_autoDetectMenuItem);
             contextMenu.Items.Add(_altImeMenuItem);
             contextMenu.Items.Add(new ToolStripSeparator());
@@ -64,7 +81,7 @@ namespace Ule4JisAlt
         private void UpdateTrayIcon()
         {
             Icon oldIcon = _currentIcon!;
-            _currentIcon = IconGenerator.CreatePixelKeyIcon(KeyboardHook.EmulationEnabled);
+            _currentIcon = IconGenerator.CreatePixelKeyIcon(KeyboardHook.EmulationEnabled, KeyboardHook.CurrentLayoutMode);
             _notifyIcon.Icon = _currentIcon;
 
             if (oldIcon != null)
@@ -77,6 +94,26 @@ namespace Ule4JisAlt
         {
             KeyboardHook.EmulationEnabled = !KeyboardHook.EmulationEnabled;
             _emulationMenuItem.Checked = KeyboardHook.EmulationEnabled;
+            _modeExternalUsMenuItem.Enabled = KeyboardHook.EmulationEnabled;
+            _modeExternalJisMenuItem.Enabled = KeyboardHook.EmulationEnabled;
+            UpdateTrayIcon();
+            SettingsManager.Save();
+        }
+
+        private void OnSelectModeExternalUs(object? sender, EventArgs e)
+        {
+            KeyboardHook.CurrentLayoutMode = LayoutMode.ExternalUs;
+            _modeExternalUsMenuItem.Checked = true;
+            _modeExternalJisMenuItem.Checked = false;
+            UpdateTrayIcon();
+            SettingsManager.Save();
+        }
+
+        private void OnSelectModeExternalJis(object? sender, EventArgs e)
+        {
+            KeyboardHook.CurrentLayoutMode = LayoutMode.ExternalJis;
+            _modeExternalUsMenuItem.Checked = false;
+            _modeExternalJisMenuItem.Checked = true;
             UpdateTrayIcon();
             SettingsManager.Save();
         }

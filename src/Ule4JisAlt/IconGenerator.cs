@@ -10,7 +10,7 @@ namespace Ule4JisAlt
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool DestroyIcon(IntPtr handle);
 
-        public static Icon CreatePixelKeyIcon(bool enabled)
+        public static Icon CreatePixelKeyIcon(bool enabled, LayoutMode mode = LayoutMode.ExternalUs)
         {
             using Bitmap bmp = new Bitmap(16, 16);
 
@@ -25,15 +25,26 @@ namespace Ule4JisAlt
 
             if (enabled)
             {
-                // ON状態：レトロ・クラシックブルーキーキャップ
-                cKeyFace = Color.FromArgb(50, 120, 200);
-                cHighlight = Color.FromArgb(130, 190, 255);
-                cShadow = Color.FromArgb(25, 70, 130);
-                cText = Color.FromArgb(255, 255, 255);
+                if (mode == LayoutMode.ExternalJis)
+                {
+                    // ON状態 (外付けJIS)：鮮やかなクリムゾンレッドキーキャップ
+                    cKeyFace = Color.FromArgb(200, 45, 55);
+                    cHighlight = Color.FromArgb(255, 120, 130);
+                    cShadow = Color.FromArgb(130, 25, 35);
+                    cText = Color.FromArgb(255, 255, 255);
+                }
+                else
+                {
+                    // ON状態 (外付けUS)：レトロ・クラシックブルーキーキャップ
+                    cKeyFace = Color.FromArgb(50, 120, 200);
+                    cHighlight = Color.FromArgb(130, 190, 255);
+                    cShadow = Color.FromArgb(25, 70, 130);
+                    cText = Color.FromArgb(255, 255, 255);
+                }
             }
             else
             {
-                // OFF状態：添付画像のようなシックなピクセルグレーキーキャップ
+                // OFF状態：シックなピクセルグレーキーキャップ
                 cKeyFace = Color.FromArgb(70, 75, 80);
                 cHighlight = Color.FromArgb(120, 125, 130);
                 cShadow = Color.FromArgb(40, 42, 45);
@@ -78,7 +89,25 @@ namespace Ule4JisAlt
                 bmp.SetPixel(14, i, cShadow);
             }
 
-            // ピクセルアートの「U」文字描画 (5x6 ドット)
+            // ピクセルアート文字の描画
+            if (mode == LayoutMode.ExternalJis)
+            {
+                DrawLetterJ(bmp, cText);
+            }
+            else
+            {
+                DrawLetterU(bmp, cText);
+            }
+
+            IntPtr hIcon = bmp.GetHicon();
+            Icon createdIcon = (Icon)Icon.FromHandle(hIcon).Clone();
+            DestroyIcon(hIcon);
+
+            return createdIcon;
+        }
+
+        private static void DrawLetterU(Bitmap bmp, Color cText)
+        {
             // 縦棒（左）
             bmp.SetPixel(5, 5, cText); bmp.SetPixel(6, 5, cText);
             bmp.SetPixel(5, 6, cText); bmp.SetPixel(6, 6, cText);
@@ -98,12 +127,31 @@ namespace Ule4JisAlt
             bmp.SetPixel(7, 10, cText);
             bmp.SetPixel(8, 10, cText);
             bmp.SetPixel(9, 10, cText);
+        }
 
-            IntPtr hIcon = bmp.GetHicon();
-            Icon createdIcon = (Icon)Icon.FromHandle(hIcon).Clone();
-            DestroyIcon(hIcon);
+        private static void DrawLetterJ(Bitmap bmp, Color cText)
+        {
+            // 上部バー
+            bmp.SetPixel(6, 5, cText);
+            bmp.SetPixel(7, 5, cText);
+            bmp.SetPixel(8, 5, cText);
+            bmp.SetPixel(9, 5, cText);
+            bmp.SetPixel(10, 5, cText);
 
-            return createdIcon;
+            // 縦棒（右寄り）
+            bmp.SetPixel(8, 6, cText); bmp.SetPixel(9, 6, cText);
+            bmp.SetPixel(8, 7, cText); bmp.SetPixel(9, 7, cText);
+            bmp.SetPixel(8, 8, cText); bmp.SetPixel(9, 8, cText);
+            bmp.SetPixel(8, 9, cText); bmp.SetPixel(9, 9, cText);
+
+            // フック（左上がり）
+            bmp.SetPixel(5, 8, cText);
+            bmp.SetPixel(5, 9, cText);
+
+            // 底部横棒
+            bmp.SetPixel(6, 10, cText);
+            bmp.SetPixel(7, 10, cText);
+            bmp.SetPixel(8, 10, cText);
         }
     }
 }

@@ -10,6 +10,7 @@ namespace Ule4JisAlt
         private static IntPtr _hookID = IntPtr.Zero;
 
         public static bool EmulationEnabled { get; set; } = true;
+        public static LayoutMode CurrentLayoutMode { get; set; } = LayoutMode.ExternalUs;
         public static bool AltImeEnabled { get; set; } = true;
 
         public static void Start()
@@ -64,20 +65,35 @@ namespace Ule4JisAlt
                     }
                 }
 
-                // 2. ULE4JIS US配列マッピング処理
+                // 2. キーボード配列マッピング処理 (ULE4JIS / ULE4US)
                 if (EmulationEnabled)
                 {
-                    bool isShift = KeyEmulator.IsShiftPressed();
-                    if (UsOnJisMapper.TryMapKey(vkCode, isShift, out var result))
-                    {
-                        // 自動判別が無効、または直近の入力が外付けキーボードの場合のみエミュレーションを実行
-                        bool shouldEmulate = !RawInputReceiver.AutoDetectionEnabled || RawInputReceiver.IsLastInputFromExternal;
+                    bool shouldEmulate = !RawInputReceiver.AutoDetectionEnabled || RawInputReceiver.IsLastInputFromExternal;
 
-                        if (shouldEmulate)
+                    if (shouldEmulate)
+                    {
+                        // 外付けJIS化モード時の特殊IMEキー処理
+                        // US配列設定のOSでは「半角/全角」キーが ` (VK_OEM_3) と誤認されるため、IMEトグルに変換する
+                        if (CurrentLayoutMode == LayoutMode.ExternalJis)
+                        {
+                            bool isShift = KeyEmulator.IsShiftPressed();
+                            if (!isShift && vkCode == NativeMethods.VK_OEM_3)
+                            {
+                                if (!isUp) // KeyDown 時にトグル
+                                {
+                                    bool currentStatus = ImeController.GetStatus();
+                                    ImeController.SetStatus(!currentStatus);
+                                }
+                                return (IntPtr)1; // ` 文字入力を防ぐため消費
+                            }
+                        }
+
+                        bool isShiftPressed = KeyEmulator.IsShiftPressed();
+                        if (KeyMapper.TryMapKey(CurrentLayoutMode, vkCode, isShiftPressed, out var result))
                         {
                             if (result != null)
                             {
-                                UsOnJisMapper.SendEmulatedKey(result, isUp);
+                                KeyMapper.SendEmulatedKey(result, isUp);
                             }
                             return (IntPtr)1; // イベントを消費
                         }

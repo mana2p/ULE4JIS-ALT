@@ -66,6 +66,13 @@ namespace Ule4JisAlt
                     if (wasDown && !wasCombo)
                     {
                         // 左Alt単体空打ち -> 無変換キー (VK_NONCONVERT = 0x1D)
+                        // 【設計上の理由】
+                        // 直接 ImeController.SetStatus(false) を呼ぶのではなく VK_NONCONVERT を送信する理由:
+                        // Windows IME (Microsoft IME) では、文字入力中（未確定文字列あり）に無変換キーを押すと「カタカナ変換」を行い、
+                        // 入力していない通常時に押すと「IME オフ」になる仕様がある。
+                        // 直接 SetStatus(false) を呼ぶと入力中文字列が強制終了されてカタカナ変換が使えなくなるため、
+                        // カタカナ変換の操作感を維持するためにあえて VK_NONCONVERT を送信している。
+                        // （※IME設定で無変換キーを「IME-オフ」に設定しておくことでこの両立動作が実現する）
                         KeyEmulator.EmulateKey(NativeMethods.VK_NONCONVERT, up: false);
                         KeyEmulator.EmulateKey(NativeMethods.VK_NONCONVERT, up: true);
                     }

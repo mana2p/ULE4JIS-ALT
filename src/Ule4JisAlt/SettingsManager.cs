@@ -7,6 +7,7 @@ namespace Ule4JisAlt
     public class AppSettings
     {
         public bool EmulationEnabled { get; set; } = true;
+        public LayoutMode LayoutMode { get; set; } = LayoutMode.ExternalUs;
         public bool AutoDetectionEnabled { get; set; } = true;
         public bool AltImeEnabled { get; set; } = true;
     }
@@ -36,6 +37,7 @@ namespace Ule4JisAlt
                     if (settings != null)
                     {
                         KeyboardHook.EmulationEnabled = settings.EmulationEnabled;
+                        KeyboardHook.CurrentLayoutMode = settings.LayoutMode;
                         RawInputReceiver.AutoDetectionEnabled = settings.AutoDetectionEnabled;
                         KeyboardHook.AltImeEnabled = settings.AltImeEnabled;
                         return;
@@ -60,6 +62,7 @@ namespace Ule4JisAlt
                 var settings = new AppSettings
                 {
                     EmulationEnabled = KeyboardHook.EmulationEnabled,
+                    LayoutMode = KeyboardHook.CurrentLayoutMode,
                     AutoDetectionEnabled = RawInputReceiver.AutoDetectionEnabled,
                     AltImeEnabled = KeyboardHook.AltImeEnabled
                 };
