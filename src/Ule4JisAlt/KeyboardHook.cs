@@ -13,6 +13,10 @@ namespace Ule4JisAlt
         public static LayoutMode CurrentLayoutMode { get; set; } = LayoutMode.ExternalUs;
         public static bool AltImeEnabled { get; set; } = true;
 
+        private static bool _henkanSpaceDown = false;
+        private static int _composingCharCount = 0;
+        private static IntPtr _lastActiveWindow = IntPtr.Zero;
+
         public static void Start()
         {
             if (_hookID != IntPtr.Zero) return;
@@ -55,6 +59,38 @@ namespace Ule4JisAlt
                 uint vkCode = hookStruct.vkCode;
                 bool isUp = (msg == NativeMethods.WM_KEYUP || msg == NativeMethods.WM_SYSKEYUP);
 
+                // アクティブウィンドウが変わったら未確定文字カウントをリセット
+                IntPtr fgWnd = NativeMethods.GetForegroundWindow();
+                if (fgWnd != _lastActiveWindow)
+                {
+                    _lastActiveWindow = fgWnd;
+                    _composingCharCount = 0;
+                }
+
+                // IME未確定入力状態の追跡 (Enter/Esc/Tabで確定・キャンセル、Backspaceで文字数減退)
+                if (!isUp)
+                {
+                    if (ImeController.GetStatus())
+                    {
+                        if (vkCode == NativeMethods.VK_RETURN || vkCode == NativeMethods.VK_ESCAPE || vkCode == NativeMethods.VK_TAB)
+                        {
+                            _composingCharCount = 0;
+                        }
+                        else if (vkCode == NativeMethods.VK_BACK)
+                        {
+                            if (_composingCharCount > 0) _composingCharCount--;
+                        }
+                        else if (IsInputCharKey(vkCode))
+                        {
+                            _composingCharCount++;
+                        }
+                    }
+                    else
+                    {
+                        _composingCharCount = 0;
+                    }
+                }
+
                 // 1. 左右 Alt 空打ち IME 切り替え処理
                 if (AltImeEnabled)
                 {
@@ -73,10 +109,11 @@ namespace Ule4JisAlt
                     if (shouldEmulate)
                     {
                         // 外付けJIS化モード時の特殊IMEキー処理
-                        // US配列設定のOSでは「半角/全角」キーが ` (VK_OEM_3) と誤認されるため、IMEトグルに変換する
                         if (CurrentLayoutMode == LayoutMode.ExternalJis)
                         {
                             bool isShift = KeyEmulator.IsShiftPressed();
+
+                            // 1. 半角/全角キー (US配列設定のOSでは ` (VK_OEM_3) と誤認されるため、IMEトグルに変換)
                             if (!isShift && vkCode == NativeMethods.VK_OEM_3)
                             {
                                 if (!isUp) // KeyDown 時にトグル
@@ -85,6 +122,67 @@ namespace Ule4JisAlt
                                     ImeController.SetStatus(!currentStatus);
                                 }
                                 return (IntPtr)1; // ` 文字入力を防ぐため消費
+                            }
+
+                            // 2. 変換キー (VK_CONVERT または scanCode 0x79)
+                            // IMEがOFFのときは「IME ON」にし、すでにIMEがONのときは「Space（未確定時は漢字変換）」として動作
+                            if (vkCode == NativeMethods.VK_CONVERT || hookStruct.scanCode == 0x79)
+                            {
+                                if (!isUp)
+                                {
+                                    if (!ImeController.GetStatus())
+                                    {
+                                        _henkanSpaceDown = false;
+                                        ImeController.SetStatus(true);
+                                    }
+                                    else
+                                    {
+                                        _henkanSpaceDown = true;
+                                        KeyEmulator.EmulateKey(NativeMethods.VK_SPACE, up: false);
+                                    }
+                                }
+                                else
+                                {
+                                    if (_henkanSpaceDown)
+                                    {
+                                        KeyEmulator.EmulateKey(NativeMethods.VK_SPACE, up: true);
+                                        _henkanSpaceDown = false;
+                                    }
+                                }
+                                return (IntPtr)1; // イベントを消費
+                            }
+
+                            // 3. 無変換キー (VK_NONCONVERT または scanCode 0x7B)
+                            // IMEで変換中（未確定文字あり）のときはカタカナ変換 (F7)、変換していない時はIME OFF
+                            if (vkCode == NativeMethods.VK_NONCONVERT || hookStruct.scanCode == 0x7B)
+                            {
+                                if (!isUp)
+                                {
+                                    bool isImeOn = ImeController.GetStatus();
+                                    if (isImeOn && _composingCharCount > 0)
+                                    {
+                                        // 日本語変換中（未確定文字あり）: カタカナ変換 (F7)
+                                        KeyEmulator.EmulateKey(NativeMethods.VK_F7, up: false);
+                                        KeyEmulator.EmulateKey(NativeMethods.VK_F7, up: true);
+                                    }
+                                    else
+                                    {
+                                        // 変換していない時: IME OFF
+                                        ImeController.SetStatus(false);
+                                        _composingCharCount = 0;
+                                    }
+                                }
+                                return (IntPtr)1; // イベントを消費
+                            }
+
+                            // 4. ひらがな/カタカナキー (VK_KANA または scanCode 0x70) -> IME ON (ひらがな)
+                            if (vkCode == NativeMethods.VK_KANA || hookStruct.scanCode == 0x70)
+                            {
+                                if (!isUp)
+                                {
+                                    ImeController.SetStatus(true);
+                                }
+                                return (IntPtr)1; // イベントを消費
                             }
                         }
 
@@ -102,6 +200,23 @@ namespace Ule4JisAlt
             }
 
             return NativeMethods.CallNextHookEx(_hookID, nCode, wParam, lParam);
+        }
+
+        private static bool IsInputCharKey(uint vkCode)
+        {
+            // A-Z, 0-9
+            if ((vkCode >= 'A' && vkCode <= 'Z') || (vkCode >= '0' && vkCode <= '9')) return true;
+
+            // Numpad
+            if (vkCode >= 0x60 && vkCode <= 0x6F) return true;
+
+            // OEM 記号キー (JIS/US 記号キー群)
+            if (vkCode >= NativeMethods.VK_OEM_1 && vkCode <= NativeMethods.VK_OEM_102) return true;
+
+            // Spaceキー
+            if (vkCode == NativeMethods.VK_SPACE) return true;
+
+            return false;
         }
     }
 }

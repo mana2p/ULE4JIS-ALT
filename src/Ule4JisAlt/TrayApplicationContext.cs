@@ -105,6 +105,11 @@ namespace Ule4JisAlt
             KeyboardHook.CurrentLayoutMode = LayoutMode.ExternalUs;
             _modeExternalUsMenuItem.Checked = true;
             _modeExternalJisMenuItem.Checked = false;
+
+            // 外付けUS化モード時はAlt空打ちIME切り替えを有効化
+            KeyboardHook.AltImeEnabled = true;
+            _altImeMenuItem.Checked = true;
+
             UpdateTrayIcon();
             SettingsManager.Save();
         }
@@ -114,6 +119,11 @@ namespace Ule4JisAlt
             KeyboardHook.CurrentLayoutMode = LayoutMode.ExternalJis;
             _modeExternalUsMenuItem.Checked = false;
             _modeExternalJisMenuItem.Checked = true;
+
+            // 外付けJIS化モード時は物理キー（変換・無変換）があるためAlt空打ちを自動的にOFF
+            KeyboardHook.AltImeEnabled = false;
+            _altImeMenuItem.Checked = false;
+
             UpdateTrayIcon();
             SettingsManager.Save();
         }

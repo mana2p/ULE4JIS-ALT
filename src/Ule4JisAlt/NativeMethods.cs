@@ -25,6 +25,9 @@ namespace Ule4JisAlt
         public const byte VK_RMENU = 0xA5;     // Right Alt
 
         // IME Virtual Keys & Messages
+        public const byte VK_SPACE = 0x20;
+        public const byte VK_F7 = 0x76;
+        public const byte VK_KANA = 0x15;
         public const byte VK_IME_ON = 0x16;
         public const byte VK_IME_OFF = 0x1A;
         public const byte VK_KANJI = 0x19;     // 漢字 / 半角全角
@@ -54,6 +57,12 @@ namespace Ule4JisAlt
         // Windows Keys
         public const byte VK_LWIN = 0x5B;
         public const byte VK_RWIN = 0x5C;
+
+        // Standard Keys
+        public const byte VK_BACK   = 0x08;
+        public const byte VK_TAB    = 0x09;
+        public const byte VK_RETURN = 0x0D;
+        public const byte VK_ESCAPE = 0x1B;
 
         // Navigation / Editing Keys
         public const byte VK_PRIOR     = 0x21;  // Page Up
