@@ -40,54 +40,58 @@ namespace Ule4JisAlt
         {
             if (nCode >= 0)
             {
-                int msg = (int)wParam;
-                NativeMethods.KBDLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<NativeMethods.KBDLLHOOKSTRUCT>(lParam);
-
-                // 自分が keybd_event で送ったエミュレートイベント（dwExtraInfo == EmulatorMarker）はそのまま通す
-                if (hookStruct.dwExtraInfo == NativeMethods.EmulatorMarker)
+                try
                 {
-                    return NativeMethods.CallNextHookEx(_hookID, nCode, wParam, lParam);
-                }
+                    int msg = (int)wParam;
+                    NativeMethods.KBDLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<NativeMethods.KBDLLHOOKSTRUCT>(lParam);
 
-                // メッセージキューに溜まっている WM_INPUT を同期的にドレインして最新デバイス情報を確定する
-                RawInputReceiver.DrainPendingRawInputMessages();
-
-                uint vkCode = hookStruct.vkCode;
-                bool isUp = (msg == NativeMethods.WM_KEYUP || msg == NativeMethods.WM_SYSKEYUP);
-
-                // 現在打鍵されているキーボードがUS配列かどうかを判定
-                // - InternalJisExternalUs: 外付けキーボードからの入力がUS配列
-                // - InternalUsExternalJis: 内蔵キーボードからの入力がUS配列
-                bool isExternal = RawInputReceiver.IsLastInputFromExternal;
-                bool isUsKeyboard = (CurrentLayoutMode == LayoutMode.InternalJisExternalUs) ? isExternal : !isExternal;
-                bool shouldEmulate = !RawInputReceiver.AutoDetectionEnabled || isUsKeyboard;
-
-                // US配列キーボード打鍵時のみエミュレーションを適用（JISキーボードは完全ネイティブスルー）
-                if (shouldEmulate)
-                {
-                    // 1. 左右 Alt 空打ち IME 切り替え処理 (USキーボードのみ適用)
-                    if (AltImeEnabled)
+                    // 自分が keybd_event で送ったエミュレートイベント（dwExtraInfo == EmulatorMarker）はそのまま通す
+                    if (hookStruct.dwExtraInfo == NativeMethods.EmulatorMarker)
                     {
-                        bool handled = AltImeSwitcher.ProcessKeyEvent(vkCode, hookStruct.flags, msg);
-                        if (handled)
-                        {
-                            return (IntPtr)1; // イベントを消費
-                        }
+                        return NativeMethods.CallNextHookEx(_hookID, nCode, wParam, lParam);
                     }
 
-                    // 2. キーボード配列マッピング処理 (US on JIS)
-                    if (EmulationEnabled)
+                    uint vkCode = hookStruct.vkCode;
+                    bool isUp = (msg == NativeMethods.WM_KEYUP || msg == NativeMethods.WM_SYSKEYUP);
+
+                    // 現在打鍵されているキーボードがUS配列かどうかを判定
+                    // - InternalJisExternalUs: 外付けキーボードからの入力がUS配列
+                    // - InternalUsExternalJis: 内蔵キーボードからの入力がUS配列
+                    bool isExternal = RawInputReceiver.IsLastInputFromExternal;
+                    bool isUsKeyboard = (CurrentLayoutMode == LayoutMode.InternalJisExternalUs) ? isExternal : !isExternal;
+                    bool shouldEmulate = !RawInputReceiver.AutoDetectionEnabled || isUsKeyboard;
+
+                    // US配列キーボード打鍵時のみエミュレーションを適用（JISキーボードは完全ネイティブスルー）
+                    if (shouldEmulate)
                     {
-                        bool isShift = KeyEmulator.IsShiftPressed();
-                        if (KeyMapper.TryMapKey(vkCode, isShift, out var result))
+                        // 1. 左右 Alt 空打ち IME 切り替え処理 (USキーボードのみ適用)
+                        if (AltImeEnabled)
                         {
-                            if (result != null)
+                            bool handled = AltImeSwitcher.ProcessKeyEvent(vkCode, hookStruct.flags, msg);
+                            if (handled)
                             {
-                                KeyMapper.SendEmulatedKey(result, isUp);
+                                return (IntPtr)1; // イベントを消費
                             }
-                            return (IntPtr)1; // イベントを消費
+                        }
+
+                        // 2. キーボード配列マッピング処理 (US on JIS)
+                        if (EmulationEnabled)
+                        {
+                            bool isShift = KeyEmulator.IsShiftPressed();
+                            if (KeyMapper.TryMapKey(vkCode, isShift, out var result))
+                            {
+                                if (result != null)
+                                {
+                                    KeyMapper.SendEmulatedKey(result, isUp);
+                                }
+                                return (IntPtr)1; // イベントを消費
+                            }
                         }
                     }
+                }
+                catch
+                {
+                    // 万が一フック内で例外が発生しても、システム全体のキーフックを詰まらせないよう安全に次へ委譲
                 }
             }
 
