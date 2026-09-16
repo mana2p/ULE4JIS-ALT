@@ -28,19 +28,19 @@ namespace Ule4JisAlt
                 Checked = KeyboardHook.EmulationEnabled
             };
 
-            _modeExternalUsMenuItem = new ToolStripMenuItem("  内蔵: JIS / 外付け: US", null, OnSelectModeExternalUs)
+            _modeExternalUsMenuItem = new ToolStripMenuItem("  PC本体: JIS / 外付け: US", null, OnSelectModeExternalUs)
             {
                 Checked = KeyboardHook.CurrentLayoutMode == LayoutMode.InternalJisExternalUs,
                 Enabled = KeyboardHook.EmulationEnabled
             };
 
-            _modeExternalJisMenuItem = new ToolStripMenuItem("  内蔵: US / 外付け: JIS", null, OnSelectModeExternalJis)
+            _modeExternalJisMenuItem = new ToolStripMenuItem("  PC本体: US / 外付け: JIS", null, OnSelectModeExternalJis)
             {
                 Checked = KeyboardHook.CurrentLayoutMode == LayoutMode.InternalUsExternalJis,
                 Enabled = KeyboardHook.EmulationEnabled
             };
 
-            _autoDetectMenuItem = new ToolStripMenuItem("キーボード自動識別 (内蔵 / 外付け切り替え)", null, OnToggleAutoDetect)
+            _autoDetectMenuItem = new ToolStripMenuItem("キーボード自動識別 (PC本体 / 外付け切り替え)", null, OnToggleAutoDetect)
             {
                 Checked = RawInputReceiver.AutoDetectionEnabled
             };
