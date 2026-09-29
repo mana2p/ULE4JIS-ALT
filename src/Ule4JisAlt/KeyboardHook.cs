@@ -62,7 +62,7 @@ namespace Ule4JisAlt
                     {
                         if (AltImeEnabled)
                         {
-                            AltImeSwitcher.NotifyCombo();
+                            AltImeSwitcher.NotifyMouseCombo();
                         }
                     }
                 }

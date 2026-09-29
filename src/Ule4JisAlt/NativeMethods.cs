@@ -21,7 +21,6 @@ namespace Ule4JisAlt
         public const int WM_MOUSEHWHEEL = 0x020E;
 
         // Virtual Key Codes
-        public const byte VK_DUMMY_MENU = 0x07; // 未割り当てキー (メニューバーフォーカス抑制用)
         public const byte VK_CAPITAL = 0x14;   // Caps Lock
         public const byte VK_SHIFT = 0x10;
         public const byte VK_CONTROL = 0x11;
