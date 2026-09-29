@@ -16,6 +16,12 @@ namespace Ule4JisAlt
         private static bool _rightAltDown = false;
         private static bool _rightAltCombo = false;
 
+        public static void NotifyCombo()
+        {
+            if (_leftAltDown) _leftAltCombo = true;
+            if (_rightAltDown) _rightAltCombo = true;
+        }
+
         public static bool ProcessKeyEvent(uint vkCode, uint flags, int msg)
         {
             bool isDown = (msg == NativeMethods.WM_KEYDOWN || msg == NativeMethods.WM_SYSKEYDOWN);
@@ -31,27 +37,18 @@ namespace Ule4JisAlt
                 {
                     _leftAltDown = true;
                     _leftAltCombo = false;
-                    return true; // 左Alt KeyDown をフック消費（メニューバー起動防止）
+                    return false; // 左Alt KeyDown をそのまま通過（Alt+ホイールやAlt+クリック等を正常動作させる）
                 }
                 else if (isRightAlt)
                 {
                     _rightAltDown = true;
                     _rightAltCombo = false;
-                    return true; // 右Alt KeyDown をフック消費
+                    return false; // 右Alt KeyDown をそのまま通過
                 }
-                else if (!IsModifierKey(vkCode))
+                else if (!IsAltKey(vkCode))
                 {
-                    // 通常キーが押された場合、Altコンボ（Alt+Tab等）が発生したと判定
-                    if (_leftAltDown && !_leftAltCombo)
-                    {
-                        _leftAltCombo = true;
-                        KeyEmulator.EmulateKey(NativeMethods.VK_LMENU, up: false);
-                    }
-                    if (_rightAltDown && !_rightAltCombo)
-                    {
-                        _rightAltCombo = true;
-                        KeyEmulator.EmulateKey(NativeMethods.VK_RMENU, up: false);
-                    }
+                    // Alt以外のキーが押された場合、Altコンボが発生したと判定
+                    NotifyCombo();
                 }
             }
             else if (isUp)
@@ -65,6 +62,9 @@ namespace Ule4JisAlt
 
                     if (wasDown && !wasCombo)
                     {
+                        // メニューバーフォーカス抑制（ダミーキー0x07送信）
+                        CancelMenuFocus();
+
                         // 左Alt単体空打ち -> 無変換キー (VK_NONCONVERT = 0x1D)
                         // 【設計上の理由】
                         // 直接 ImeController.SetStatus(false) を呼ぶのではなく VK_NONCONVERT を送信する理由:
@@ -76,12 +76,8 @@ namespace Ule4JisAlt
                         KeyEmulator.EmulateKey(NativeMethods.VK_NONCONVERT, up: false);
                         KeyEmulator.EmulateKey(NativeMethods.VK_NONCONVERT, up: true);
                     }
-                    else if (wasCombo)
-                    {
-                        KeyEmulator.EmulateKey(NativeMethods.VK_LMENU, up: true);
-                    }
 
-                    return true;
+                    return false; // 左Alt KeyUp もそのまま通過
                 }
                 else if (isRightAlt)
                 {
@@ -92,35 +88,32 @@ namespace Ule4JisAlt
 
                     if (wasDown && !wasCombo)
                     {
+                        // メニューバーフォーカス抑制（ダミーキー0x07送信）
+                        CancelMenuFocus();
+
                         // 右Alt単体空打ち -> IME ON (かな)
                         ImeController.SetStatus(true);
                     }
-                    else if (wasCombo)
-                    {
-                        KeyEmulator.EmulateKey(NativeMethods.VK_RMENU, up: true);
-                    }
 
-                    return true;
+                    return false; // 右Alt KeyUp もそのまま通過
                 }
             }
 
             return false;
         }
 
-        private static bool IsModifierKey(uint vkCode)
+        private static void CancelMenuFocus()
         {
-            return vkCode == NativeMethods.VK_SHIFT ||
-                   vkCode == NativeMethods.VK_LSHIFT ||
-                   vkCode == NativeMethods.VK_RSHIFT ||
-                   vkCode == NativeMethods.VK_CONTROL ||
-                   vkCode == NativeMethods.VK_LCONTROL ||
-                   vkCode == NativeMethods.VK_RCONTROL ||
-                   vkCode == NativeMethods.VK_MENU ||
+            // Windows に「Alt + 0x07」が押されたと認識させ、メニューバーのアクティブ化 (SC_KEYMENU) をキャンセルする
+            KeyEmulator.EmulateKey(NativeMethods.VK_DUMMY_MENU, up: false);
+            KeyEmulator.EmulateKey(NativeMethods.VK_DUMMY_MENU, up: true);
+        }
+
+        private static bool IsAltKey(uint vkCode)
+        {
+            return vkCode == NativeMethods.VK_MENU ||
                    vkCode == NativeMethods.VK_LMENU ||
-                   vkCode == NativeMethods.VK_RMENU ||
-                   vkCode == NativeMethods.VK_CAPITAL ||
-                   vkCode == NativeMethods.VK_LWIN ||
-                   vkCode == NativeMethods.VK_RWIN;
+                   vkCode == NativeMethods.VK_RMENU;
         }
     }
 }

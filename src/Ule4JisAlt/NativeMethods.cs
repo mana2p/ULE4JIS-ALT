@@ -6,13 +6,22 @@ namespace Ule4JisAlt
     internal static class NativeMethods
     {
         public const int WH_KEYBOARD_LL = 13;
+        public const int WH_MOUSE_LL = 14;
 
         public const int WM_KEYDOWN = 0x0100;
         public const int WM_KEYUP = 0x0101;
         public const int WM_SYSKEYDOWN = 0x0104;
         public const int WM_SYSKEYUP = 0x0105;
 
+        // Mouse Messages
+        public const int WM_LBUTTONDOWN = 0x0201;
+        public const int WM_RBUTTONDOWN = 0x0204;
+        public const int WM_MBUTTONDOWN = 0x0207;
+        public const int WM_MOUSEWHEEL = 0x020A;
+        public const int WM_MOUSEHWHEEL = 0x020E;
+
         // Virtual Key Codes
+        public const byte VK_DUMMY_MENU = 0x07; // 未割り当てキー (メニューバーフォーカス抑制用)
         public const byte VK_CAPITAL = 0x14;   // Caps Lock
         public const byte VK_SHIFT = 0x10;
         public const byte VK_CONTROL = 0x11;
