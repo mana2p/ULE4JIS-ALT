@@ -31,7 +31,7 @@ namespace Ule4JisAlt
                 {
                     _leftAltDown = true;
                     _leftAltCombo = false;
-                    return true; // 左Alt KeyDown をフック消費（メニューバー起動防止 & 単打ち時の純粋な無変換送信のため）
+                    return true; // 左Alt KeyDown をフック消費（メニューバー起動防止）
                 }
                 else if (isRightAlt)
                 {
@@ -42,43 +42,15 @@ namespace Ule4JisAlt
                 else if (!IsModifierKey(vkCode))
                 {
                     // 通常キーが押された場合、Altコンボ（Alt+Tab等）が発生したと判定
-                    // 【フェイルセーフ】物理的にAltキーが押されているかを確認。
-                    // もしKeyUpを取りこぼしてフラグだけが残っていた場合、勝手にAlt Downを送信してスタックするのを防ぎ自己修復する。
-                    bool isPhysLeftAlt = (NativeMethods.GetKeyState(NativeMethods.VK_LMENU) & 0x8000) != 0 ||
-                                         (NativeMethods.GetKeyState(NativeMethods.VK_MENU) & 0x8000) != 0;
-                    if (_leftAltDown)
+                    if (_leftAltDown && !_leftAltCombo)
                     {
-                        if (isPhysLeftAlt)
-                        {
-                            if (!_leftAltCombo)
-                            {
-                                _leftAltCombo = true;
-                                KeyEmulator.EmulateKey(NativeMethods.VK_LMENU, up: false);
-                            }
-                        }
-                        else
-                        {
-                            _leftAltDown = false;
-                            _leftAltCombo = false;
-                        }
+                        _leftAltCombo = true;
+                        KeyEmulator.EmulateKey(NativeMethods.VK_LMENU, up: false);
                     }
-
-                    bool isPhysRightAlt = (NativeMethods.GetKeyState(NativeMethods.VK_RMENU) & 0x8000) != 0;
-                    if (_rightAltDown)
+                    if (_rightAltDown && !_rightAltCombo)
                     {
-                        if (isPhysRightAlt)
-                        {
-                            if (!_rightAltCombo)
-                            {
-                                _rightAltCombo = true;
-                                KeyEmulator.EmulateKey(NativeMethods.VK_RMENU, up: false);
-                            }
-                        }
-                        else
-                        {
-                            _rightAltDown = false;
-                            _rightAltCombo = false;
-                        }
+                        _rightAltCombo = true;
+                        KeyEmulator.EmulateKey(NativeMethods.VK_RMENU, up: false);
                     }
                 }
             }
@@ -109,7 +81,7 @@ namespace Ule4JisAlt
                         KeyEmulator.EmulateKey(NativeMethods.VK_LMENU, up: true);
                     }
 
-                    return true; // 左Alt KeyUp をフック消費（メニューバー起動を100%防止）
+                    return true;
                 }
                 else if (isRightAlt)
                 {
@@ -128,11 +100,28 @@ namespace Ule4JisAlt
                         KeyEmulator.EmulateKey(NativeMethods.VK_RMENU, up: true);
                     }
 
-                    return true; // 右Alt KeyUp をフック消費
+                    return true;
                 }
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// マウス操作（ホイール回転・クリック等）発生時に呼ばれ、Altキーが物理的に押下中ならAltコンボとして成立させる
+        /// </summary>
+        public static void NotifyMouseCombo()
+        {
+            if (_leftAltDown && !_leftAltCombo)
+            {
+                _leftAltCombo = true;
+                KeyEmulator.EmulateKey(NativeMethods.VK_LMENU, up: false);
+            }
+            if (_rightAltDown && !_rightAltCombo)
+            {
+                _rightAltCombo = true;
+                KeyEmulator.EmulateKey(NativeMethods.VK_RMENU, up: false);
+            }
         }
 
         private static bool IsModifierKey(uint vkCode)

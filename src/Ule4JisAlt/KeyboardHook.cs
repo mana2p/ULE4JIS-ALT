@@ -8,6 +8,8 @@ namespace Ule4JisAlt
     {
         private static NativeMethods.HookProc? _hookDelegate;
         private static IntPtr _hookID = IntPtr.Zero;
+        private static NativeMethods.HookProc? _mouseHookDelegate;
+        private static IntPtr _mouseHookID = IntPtr.Zero;
 
         public static bool EmulationEnabled { get; set; } = true;
         public static LayoutMode CurrentLayoutMode { get; set; } = LayoutMode.InternalJisExternalUs;
@@ -18,11 +20,14 @@ namespace Ule4JisAlt
             if (_hookID != IntPtr.Zero) return;
 
             _hookDelegate = HookCallback;
+            _mouseHookDelegate = MouseHookCallback;
+
             using (Process curProcess = Process.GetCurrentProcess())
             using (ProcessModule? curModule = curProcess.MainModule)
             {
                 IntPtr hMod = NativeMethods.GetModuleHandle(curModule?.ModuleName);
                 _hookID = NativeMethods.SetWindowsHookEx(NativeMethods.WH_KEYBOARD_LL, _hookDelegate, hMod, 0);
+                _mouseHookID = NativeMethods.SetWindowsHookEx(NativeMethods.WH_MOUSE_LL, _mouseHookDelegate, hMod, 0);
             }
         }
 
@@ -33,6 +38,13 @@ namespace Ule4JisAlt
                 NativeMethods.UnhookWindowsHookEx(_hookID);
                 _hookID = IntPtr.Zero;
                 _hookDelegate = null;
+            }
+
+            if (_mouseHookID != IntPtr.Zero)
+            {
+                NativeMethods.UnhookWindowsHookEx(_mouseHookID);
+                _mouseHookID = IntPtr.Zero;
+                _mouseHookDelegate = null;
             }
         }
 
@@ -96,6 +108,38 @@ namespace Ule4JisAlt
             }
 
             return NativeMethods.CallNextHookEx(_hookID, nCode, wParam, lParam);
+        }
+
+        private static IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0)
+            {
+                try
+                {
+                    int msg = (int)wParam;
+                    // 高頻度なマウス移動は整数比較で即座に除外（CPU負荷ゼロ）
+                    if (msg != NativeMethods.WM_MOUSEMOVE)
+                    {
+                        if (msg == NativeMethods.WM_MOUSEWHEEL ||
+                            msg == NativeMethods.WM_MOUSEHWHEEL ||
+                            msg == NativeMethods.WM_LBUTTONDOWN ||
+                            msg == NativeMethods.WM_RBUTTONDOWN ||
+                            msg == NativeMethods.WM_MBUTTONDOWN)
+                        {
+                            if (AltImeEnabled)
+                            {
+                                AltImeSwitcher.NotifyMouseCombo();
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // 万が一フック内で例外が発生しても、システム全体のマウス操作を詰まらせないよう安全に次へ委譲
+                }
+            }
+
+            return NativeMethods.CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
         }
     }
 }
