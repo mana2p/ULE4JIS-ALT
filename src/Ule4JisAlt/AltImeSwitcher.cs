@@ -16,20 +16,6 @@ namespace Ule4JisAlt
         private static bool _rightAltDown = false;
         private static bool _rightAltCombo = false;
 
-        public static void NotifyMouseCombo()
-        {
-            if (_leftAltDown && !_leftAltCombo)
-            {
-                _leftAltCombo = true;
-                KeyEmulator.EmulateKey(NativeMethods.VK_LMENU, up: false);
-            }
-            if (_rightAltDown && !_rightAltCombo)
-            {
-                _rightAltCombo = true;
-                KeyEmulator.EmulateKey(NativeMethods.VK_RMENU, up: false);
-            }
-        }
-
         public static bool ProcessKeyEvent(uint vkCode, uint flags, int msg)
         {
             bool isDown = (msg == NativeMethods.WM_KEYDOWN || msg == NativeMethods.WM_SYSKEYDOWN);
@@ -55,16 +41,44 @@ namespace Ule4JisAlt
                 }
                 else if (!IsModifierKey(vkCode))
                 {
-                    // 通常キーが押された場合、Altコンボ（Alt+Tab等）が発生したと判定してAlt押下を遅延送信
-                    if (_leftAltDown && !_leftAltCombo)
+                    // 通常キーが押された場合、Altコンボ（Alt+Tab等）が発生したと判定
+                    // 【フェイルセーフ】物理的にAltキーが押されているかを確認。
+                    // もしKeyUpを取りこぼしてフラグだけが残っていた場合、勝手にAlt Downを送信してスタックするのを防ぎ自己修復する。
+                    bool isPhysLeftAlt = (NativeMethods.GetKeyState(NativeMethods.VK_LMENU) & 0x8000) != 0 ||
+                                         (NativeMethods.GetKeyState(NativeMethods.VK_MENU) & 0x8000) != 0;
+                    if (_leftAltDown)
                     {
-                        _leftAltCombo = true;
-                        KeyEmulator.EmulateKey(NativeMethods.VK_LMENU, up: false);
+                        if (isPhysLeftAlt)
+                        {
+                            if (!_leftAltCombo)
+                            {
+                                _leftAltCombo = true;
+                                KeyEmulator.EmulateKey(NativeMethods.VK_LMENU, up: false);
+                            }
+                        }
+                        else
+                        {
+                            _leftAltDown = false;
+                            _leftAltCombo = false;
+                        }
                     }
-                    if (_rightAltDown && !_rightAltCombo)
+
+                    bool isPhysRightAlt = (NativeMethods.GetKeyState(NativeMethods.VK_RMENU) & 0x8000) != 0;
+                    if (_rightAltDown)
                     {
-                        _rightAltCombo = true;
-                        KeyEmulator.EmulateKey(NativeMethods.VK_RMENU, up: false);
+                        if (isPhysRightAlt)
+                        {
+                            if (!_rightAltCombo)
+                            {
+                                _rightAltCombo = true;
+                                KeyEmulator.EmulateKey(NativeMethods.VK_RMENU, up: false);
+                            }
+                        }
+                        else
+                        {
+                            _rightAltDown = false;
+                            _rightAltCombo = false;
+                        }
                     }
                 }
             }
