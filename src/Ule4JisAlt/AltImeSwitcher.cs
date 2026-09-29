@@ -29,14 +29,22 @@ namespace Ule4JisAlt
             {
                 if (isLeftAlt)
                 {
-                    _leftAltDown = true;
-                    _leftAltCombo = false;
+                    // 初回押下時のみコンボフラグを初期化（長押し時のキーリピートによるコンボ解除・Altスタックを防止）
+                    if (!_leftAltDown)
+                    {
+                        _leftAltDown = true;
+                        _leftAltCombo = false;
+                    }
                     return true; // 左Alt KeyDown をフック消費（メニューバー起動防止）
                 }
                 else if (isRightAlt)
                 {
-                    _rightAltDown = true;
-                    _rightAltCombo = false;
+                    // 初回押下時のみコンボフラグを初期化
+                    if (!_rightAltDown)
+                    {
+                        _rightAltDown = true;
+                        _rightAltCombo = false;
+                    }
                     return true; // 右Alt KeyDown をフック消費
                 }
                 else if (!IsModifierKey(vkCode))
