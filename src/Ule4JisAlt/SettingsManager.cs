@@ -44,7 +44,18 @@ namespace Ule4JisAlt
                     }
                 }
             }
-            catch { }
+            catch
+            {
+                // 設定ファイルが破損していた場合は上書き前にバックアップを退避する
+                try
+                {
+                    if (File.Exists(SettingsFilePath))
+                    {
+                        File.Copy(SettingsFilePath, SettingsFilePath + ".bak", overwrite: true);
+                    }
+                }
+                catch { }
+            }
 
             // ファイルが存在しない、または読み込み失敗時はデフォルト値で保存作成
             Save();
@@ -68,7 +79,9 @@ namespace Ule4JisAlt
                 };
 
                 string json = JsonSerializer.Serialize(settings, JsonOptions);
-                File.WriteAllText(SettingsFilePath, json);
+                string tempFilePath = SettingsFilePath + ".tmp";
+                File.WriteAllText(tempFilePath, json);
+                File.Move(tempFilePath, SettingsFilePath, overwrite: true);
             }
             catch { }
         }

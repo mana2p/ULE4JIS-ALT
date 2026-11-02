@@ -93,6 +93,7 @@ namespace Ule4JisAlt
         private void OnToggleEmulation(object? sender, EventArgs e)
         {
             KeyboardHook.EmulationEnabled = !KeyboardHook.EmulationEnabled;
+            AltImeSwitcher.Reset();
             _emulationMenuItem.Checked = KeyboardHook.EmulationEnabled;
             _modeExternalUsMenuItem.Enabled = KeyboardHook.EmulationEnabled;
             _modeExternalJisMenuItem.Enabled = KeyboardHook.EmulationEnabled;
@@ -103,6 +104,7 @@ namespace Ule4JisAlt
         private void OnSelectModeExternalUs(object? sender, EventArgs e)
         {
             KeyboardHook.CurrentLayoutMode = LayoutMode.InternalJisExternalUs;
+            AltImeSwitcher.Reset();
             _modeExternalUsMenuItem.Checked = true;
             _modeExternalJisMenuItem.Checked = false;
             UpdateTrayIcon();
@@ -112,6 +114,7 @@ namespace Ule4JisAlt
         private void OnSelectModeExternalJis(object? sender, EventArgs e)
         {
             KeyboardHook.CurrentLayoutMode = LayoutMode.InternalUsExternalJis;
+            AltImeSwitcher.Reset();
             _modeExternalUsMenuItem.Checked = false;
             _modeExternalJisMenuItem.Checked = true;
             UpdateTrayIcon();
@@ -128,6 +131,7 @@ namespace Ule4JisAlt
         private void OnToggleAltIme(object? sender, EventArgs e)
         {
             KeyboardHook.AltImeEnabled = !KeyboardHook.AltImeEnabled;
+            AltImeSwitcher.Reset();
             _altImeMenuItem.Checked = KeyboardHook.AltImeEnabled;
             SettingsManager.Save();
         }

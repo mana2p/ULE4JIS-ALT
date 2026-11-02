@@ -86,6 +86,10 @@ namespace Ule4JisAlt
             {
                 ProcessRawInput(m.LParam);
             }
+            else if (m.Msg == WM_DEVICECHANGE)
+            {
+                _deviceIsExternalCache.Clear();
+            }
             base.WndProc(ref m);
         }
 

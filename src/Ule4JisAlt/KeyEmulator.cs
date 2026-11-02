@@ -51,9 +51,9 @@ namespace Ule4JisAlt
 
         public static bool IsShiftPressed()
         {
-            return (NativeMethods.GetKeyState(NativeMethods.VK_SHIFT) & 0x8000) != 0 ||
-                   (NativeMethods.GetKeyState(NativeMethods.VK_LSHIFT) & 0x8000) != 0 ||
-                   (NativeMethods.GetKeyState(NativeMethods.VK_RSHIFT) & 0x8000) != 0;
+            return (NativeMethods.GetAsyncKeyState(NativeMethods.VK_SHIFT) & 0x8000) != 0 ||
+                   (NativeMethods.GetAsyncKeyState(NativeMethods.VK_LSHIFT) & 0x8000) != 0 ||
+                   (NativeMethods.GetAsyncKeyState(NativeMethods.VK_RSHIFT) & 0x8000) != 0;
         }
     }
 }

@@ -33,6 +33,8 @@ namespace Ule4JisAlt
 
         public static void Stop()
         {
+            AltImeSwitcher.Reset();
+
             if (_hookID != IntPtr.Zero)
             {
                 NativeMethods.UnhookWindowsHookEx(_hookID);
@@ -72,6 +74,16 @@ namespace Ule4JisAlt
                     bool isExternal = RawInputReceiver.IsLastInputFromExternal;
                     bool isUsKeyboard = (CurrentLayoutMode == LayoutMode.InternalJisExternalUs) ? isExternal : !isExternal;
                     bool shouldEmulate = !RawInputReceiver.AutoDetectionEnabled || isUsKeyboard;
+
+                    // US側でAltを押したままJIS側へ移ってAltを離した場合のKeyUp取りこぼしを防ぐため、押下中のAlt離しイベントだけは回収する
+                    if (!shouldEmulate && AltImeEnabled && AltImeSwitcher.IsAltPressed && isUp &&
+                        (vkCode == NativeMethods.VK_LMENU || vkCode == NativeMethods.VK_RMENU || vkCode == NativeMethods.VK_MENU))
+                    {
+                        if (AltImeSwitcher.ProcessKeyEvent(vkCode, hookStruct.flags, msg))
+                        {
+                            return (IntPtr)1;
+                        }
+                    }
 
                     // US配列キーボード打鍵時のみエミュレーションを適用（JISキーボードは完全ネイティブスルー）
                     if (shouldEmulate)

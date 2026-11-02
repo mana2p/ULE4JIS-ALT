@@ -16,14 +16,33 @@ namespace Ule4JisAlt
         private static bool _rightAltDown = false;
         private static bool _rightAltCombo = false;
 
+        public static bool IsAltPressed => _leftAltDown || _rightAltDown;
+
         public static bool ProcessKeyEvent(uint vkCode, uint flags, int msg)
         {
             bool isDown = (msg == NativeMethods.WM_KEYDOWN || msg == NativeMethods.WM_SYSKEYDOWN);
             bool isUp = (msg == NativeMethods.WM_KEYUP || msg == NativeMethods.WM_SYSKEYUP);
 
-            bool isExtended = (flags & NativeMethods.KEYEVENTF_EXTENDEDKEY) != 0 || (flags & 1) != 0;
+            bool isExtended = (flags & NativeMethods.KEYEVENTF_EXTENDEDKEY) != 0;
             bool isLeftAlt = (vkCode == NativeMethods.VK_LMENU) || (vkCode == NativeMethods.VK_MENU && !isExtended);
             bool isRightAlt = (vkCode == NativeMethods.VK_RMENU) || (vkCode == NativeMethods.VK_MENU && isExtended);
+
+            // コンボ成立後（仮想Alt Down送信済み）にUACや画面ロック等でKeyUpが失われ、OS側で既にAltが解除されている場合は自己回復する
+            // （※コンボ成立前はフックでAlt押下を消費しているためOS側のGetAsyncKeyStateは0になる。コンボ成立後のみチェックすることでAltコンボを妨げない）
+            if (_leftAltCombo && !isLeftAlt &&
+                (NativeMethods.GetAsyncKeyState(NativeMethods.VK_LMENU) & 0x8000) == 0 &&
+                (NativeMethods.GetAsyncKeyState(NativeMethods.VK_MENU) & 0x8000) == 0)
+            {
+                _leftAltDown = false;
+                _leftAltCombo = false;
+            }
+            if (_rightAltCombo && !isRightAlt &&
+                (NativeMethods.GetAsyncKeyState(NativeMethods.VK_RMENU) & 0x8000) == 0 &&
+                (NativeMethods.GetAsyncKeyState(NativeMethods.VK_MENU) & 0x8000) == 0)
+            {
+                _rightAltDown = false;
+                _rightAltCombo = false;
+            }
 
             if (isDown)
             {
@@ -129,6 +148,30 @@ namespace Ule4JisAlt
             {
                 _rightAltCombo = true;
                 KeyEmulator.EmulateKey(NativeMethods.VK_RMENU, up: false);
+            }
+        }
+
+        /// <summary>
+        /// モード切替・機能無効化・終了時にAlt状態を安全にリセットする。
+        /// コンボ中で既にOSへ仮想Alt押下を送信していた場合は、フラグを消した上で仮想Alt離し（KeyUp）を送信する。
+        /// </summary>
+        public static void Reset()
+        {
+            bool wasLeftCombo = _leftAltCombo;
+            bool wasRightCombo = _rightAltCombo;
+
+            _leftAltDown = false;
+            _leftAltCombo = false;
+            _rightAltDown = false;
+            _rightAltCombo = false;
+
+            if (wasLeftCombo)
+            {
+                KeyEmulator.EmulateKey(NativeMethods.VK_LMENU, up: true);
+            }
+            if (wasRightCombo)
+            {
+                KeyEmulator.EmulateKey(NativeMethods.VK_RMENU, up: true);
             }
         }
 

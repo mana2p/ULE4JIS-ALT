@@ -41,6 +41,7 @@ namespace Ule4JisAlt
         public const uint WM_IME_CONTROL = 0x0283;
         public const int IMC_GETOPENSTATUS = 0x0005;
         public const int IMC_SETOPENSTATUS = 0x0006;
+        public const uint SMTO_ABORTIFHUNG = 0x0002;
 
         // OEM Virtual Keys for JIS / US Layout
         public const byte VK_OEM_1 = 0xBA;
@@ -138,6 +139,9 @@ namespace Ule4JisAlt
         public static extern short GetKeyState(int nVirtKey);
 
         [DllImport("user32.dll")]
+        public static extern short GetAsyncKeyState(int vKey);
+
+        [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
 
         [DllImport("user32.dll")]
@@ -152,5 +156,15 @@ namespace Ule4JisAlt
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern IntPtr SendMessageTimeout(
+            IntPtr hWnd,
+            uint Msg,
+            IntPtr wParam,
+            IntPtr lParam,
+            uint fuFlags,
+            uint uTimeout,
+            out IntPtr lpdwResult);
     }
 }

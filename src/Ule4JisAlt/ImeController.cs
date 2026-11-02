@@ -30,32 +30,63 @@ namespace Ule4JisAlt
             return NativeMethods.ImmGetDefaultIMEWnd(targetWnd);
         }
 
-        public static bool GetStatus()
+        private const uint ImeSendMessageTimeoutMs = 50;
+
+        public static bool TryGetStatus(out bool isOpen)
         {
+            isOpen = false;
             IntPtr imeWnd = GetImeWindowHandle();
             if (imeWnd == IntPtr.Zero) return false;
 
-            IntPtr res = NativeMethods.SendMessage(imeWnd, NativeMethods.WM_IME_CONTROL, (IntPtr)NativeMethods.IMC_GETOPENSTATUS, IntPtr.Zero);
-            return res != IntPtr.Zero;
+            IntPtr sendResult = NativeMethods.SendMessageTimeout(
+                imeWnd,
+                NativeMethods.WM_IME_CONTROL,
+                (IntPtr)NativeMethods.IMC_GETOPENSTATUS,
+                IntPtr.Zero,
+                NativeMethods.SMTO_ABORTIFHUNG,
+                ImeSendMessageTimeoutMs,
+                out IntPtr res);
+
+            if (sendResult == IntPtr.Zero) return false;
+
+            isOpen = res != IntPtr.Zero;
+            return true;
+        }
+
+        public static bool GetStatus()
+        {
+            return TryGetStatus(out bool isOpen) && isOpen;
         }
 
         public static void SetStatus(bool enable)
         {
-            // 1. WM_IME_CONTROL メッセージによる確実なIME切り替え
+            // 1. WM_IME_CONTROL メッセージによる確実なIME切り替え（ハング中ウィンドウでのフック詰まりを避けるためタイムアウト付き）
             IntPtr imeWnd = GetImeWindowHandle();
             if (imeWnd != IntPtr.Zero)
             {
-                NativeMethods.SendMessage(imeWnd, NativeMethods.WM_IME_CONTROL, (IntPtr)NativeMethods.IMC_SETOPENSTATUS, (IntPtr)(enable ? 1 : 0));
+                NativeMethods.SendMessageTimeout(
+                    imeWnd,
+                    NativeMethods.WM_IME_CONTROL,
+                    (IntPtr)NativeMethods.IMC_SETOPENSTATUS,
+                    (IntPtr)(enable ? 1 : 0),
+                    NativeMethods.SMTO_ABORTIFHUNG,
+                    ImeSendMessageTimeoutMs,
+                    out _);
             }
 
             // 2. メッセージ送信後も状態が一致しない場合のキー送信補填
-            bool currentStatus = GetStatus();
+            // ※タイムアウト等で現在状態が不明な場合は、VK_KANJI（トグル）による意図しない反転を避けるため補填を行わない
+            if (!TryGetStatus(out bool currentStatus))
+            {
+                return;
+            }
+
             if (enable && !currentStatus)
             {
                 KeyEmulator.EmulateKey(NativeMethods.VK_IME_ON, up: false);
                 KeyEmulator.EmulateKey(NativeMethods.VK_IME_ON, up: true);
 
-                if (!GetStatus())
+                if (TryGetStatus(out currentStatus) && !currentStatus)
                 {
                     KeyEmulator.EmulateKey(NativeMethods.VK_KANJI, up: false);
                     KeyEmulator.EmulateKey(NativeMethods.VK_KANJI, up: true);
@@ -66,7 +97,7 @@ namespace Ule4JisAlt
                 KeyEmulator.EmulateKey(NativeMethods.VK_IME_OFF, up: false);
                 KeyEmulator.EmulateKey(NativeMethods.VK_IME_OFF, up: true);
 
-                if (GetStatus())
+                if (TryGetStatus(out currentStatus) && currentStatus)
                 {
                     KeyEmulator.EmulateKey(NativeMethods.VK_KANJI, up: false);
                     KeyEmulator.EmulateKey(NativeMethods.VK_KANJI, up: true);

@@ -178,8 +178,8 @@ namespace Ule4JisAlt
         {
             if (shiftAction == ShiftAction.ReleaseShift)
             {
-                bool lshift = (NativeMethods.GetKeyState(NativeMethods.VK_LSHIFT) & 0x8000) != 0;
-                bool rshift = (NativeMethods.GetKeyState(NativeMethods.VK_RSHIFT) & 0x8000) != 0;
+                bool lshift = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_LSHIFT) & 0x8000) != 0;
+                bool rshift = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_RSHIFT) & 0x8000) != 0;
 
                 if (lshift) KeyEmulator.EmulateKey(NativeMethods.VK_LSHIFT, up: true);
                 if (rshift) KeyEmulator.EmulateKey(NativeMethods.VK_RSHIFT, up: true);
