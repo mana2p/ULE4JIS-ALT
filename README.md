@@ -29,9 +29,10 @@
 
 ## 🚀 すぐに使う (ダウンロード)
 
-1. **[最新バージョンのダウンロード (ULE4JIS-ALT.exe)](https://github.com/mana2p/ULE4JIS-ALT/releases/latest/download/ULE4JIS-ALT.exe)**
-2. ダウンロードした `ULE4JIS-ALT.exe` を実行するだけで、タスクバーの通知領域（トレイアイコン）に常駐します。
-3. トレイアイコンを右クリックして、使用する環境に合ったモードを選択してください。
+1. **[最新バージョンのダウンロード (ULE4JIS-ALT.zip)](https://github.com/mana2p/ULE4JIS-ALT/releases/latest/download/ULE4JIS-ALT.zip)**
+2. ダウンロードした `ULE4JIS-ALT.zip` を任意のフォルダに解凍します（詳しい使い方は同梱の `README.txt` をご覧ください）。
+3. フォルダ内の `ULE4JIS-ALT.exe` を実行するだけで、タスクバーの通知領域（トレイアイコン）に常駐します。
+4. トレイアイコンを右クリックして、使用する環境に合ったモードを選択してください。
 
 ---
 

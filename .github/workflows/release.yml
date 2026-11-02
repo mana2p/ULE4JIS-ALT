@@ -37,5 +37,5 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
         run: |
-          gh release create ${{ github.ref_name }} publish_out/ULE4JIS-ALT.exe ULE4JIS-ALT.zip --title "${{ github.ref_name }}" --generate-notes
+          gh release create ${{ github.ref_name }} ULE4JIS-ALT.zip --title "${{ github.ref_name }}" --generate-notes
 
