@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Run unit tests
+        run: dotnet test ULE4JIS.sln --configuration Release
+
+      - name: Publish single-file executable
+        run: dotnet publish src/Ule4JisAlt/Ule4JisAlt.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish_out
+
+      - name: Create release archive
+        shell: pwsh
+        run: |
+          Copy-Item publish/README.txt publish_out/README.txt
+          Compress-Archive -Path publish_out/ULE4JIS-ALT.exe, publish_out/README.txt -DestinationPath ULE4JIS-ALT.zip -Force
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          gh release create ${{ github.ref_name }} publish_out/ULE4JIS-ALT.exe ULE4JIS-ALT.zip --title "${{ github.ref_name }}" --generate-notes
+

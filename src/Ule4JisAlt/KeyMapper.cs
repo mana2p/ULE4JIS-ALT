@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Ule4JisAlt
 {
@@ -152,53 +153,84 @@ namespace Ule4JisAlt
         }
 
         /// <summary>
-        /// エミュレートされたキーを送信する。
+        /// エミュレートされたキーを1回の SendInput でアトミックに送信する。
         /// </summary>
         public static void SendEmulatedKey(KeyEmulationResult result, bool isUp)
         {
-            if (result.Mode == EmulationMode.PressAndRelease)
+            bool lshift = false;
+            bool rshift = false;
+            if (result.ShiftAction == ShiftAction.ReleaseShift && (result.Mode == EmulationMode.PressAndRelease || !isUp))
             {
-                ExecuteWithShiftAction(result.TargetVkCode, result.ShiftAction, up: false);
-                KeyEmulator.EmulateKey(result.TargetVkCode, up: true);
+                lshift = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_LSHIFT) & 0x8000) != 0;
+                rshift = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_RSHIFT) & 0x8000) != 0;
             }
-            else if (!isUp)
-            {
-                ExecuteWithShiftAction(result.TargetVkCode, result.ShiftAction, up: false);
-            }
-            else
-            {
-                KeyEmulator.EmulateKey(result.TargetVkCode, up: true);
-            }
+
+            Span<(byte vkCode, bool up)> buffer = stackalloc (byte vkCode, bool up)[6];
+            int count = BuildKeySequence(result, isUp, lshift, rshift, buffer);
+            KeyEmulator.EmulateKeys(buffer.Slice(0, count));
         }
 
         /// <summary>
-        /// Shift操作付きでキーを送信する。
+        /// 送信すべき (vkCode, up) イベント列を構築する（アロケーションなし、単体テスト可能）。
         /// </summary>
-        private static void ExecuteWithShiftAction(byte targetVkCode, ShiftAction shiftAction, bool up)
+        internal static int BuildKeySequence(
+            KeyEmulationResult result,
+            bool isUp,
+            bool lshiftPressed,
+            bool rshiftPressed,
+            Span<(byte vkCode, bool up)> destination)
         {
-            if (shiftAction == ShiftAction.ReleaseShift)
+            int idx = 0;
+
+            if (result.Mode == EmulationMode.PressAndRelease)
             {
-                bool lshift = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_LSHIFT) & 0x8000) != 0;
-                bool rshift = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_RSHIFT) & 0x8000) != 0;
-
-                if (lshift) KeyEmulator.EmulateKey(NativeMethods.VK_LSHIFT, up: true);
-                if (rshift) KeyEmulator.EmulateKey(NativeMethods.VK_RSHIFT, up: true);
-
-                KeyEmulator.EmulateKey(targetVkCode, up);
-
-                if (lshift) KeyEmulator.EmulateKey(NativeMethods.VK_LSHIFT, up: false);
-                if (rshift) KeyEmulator.EmulateKey(NativeMethods.VK_RSHIFT, up: false);
+                idx += AppendShiftWrappedKey(result.TargetVkCode, result.ShiftAction, up: false, lshiftPressed, rshiftPressed, destination);
+                destination[idx++] = (result.TargetVkCode, true);
             }
-            else if (shiftAction == ShiftAction.PressShift)
+            else if (!isUp)
             {
-                KeyEmulator.EmulateKey(NativeMethods.VK_LSHIFT, up: false);
-                KeyEmulator.EmulateKey(targetVkCode, up);
-                KeyEmulator.EmulateKey(NativeMethods.VK_LSHIFT, up: true);
+                idx += AppendShiftWrappedKey(result.TargetVkCode, result.ShiftAction, up: false, lshiftPressed, rshiftPressed, destination);
             }
             else
             {
-                KeyEmulator.EmulateKey(targetVkCode, up);
+                destination[idx++] = (result.TargetVkCode, true);
             }
+
+            return idx;
+        }
+
+        private static int AppendShiftWrappedKey(
+            byte targetVkCode,
+            ShiftAction shiftAction,
+            bool up,
+            bool lshiftPressed,
+            bool rshiftPressed,
+            Span<(byte vkCode, bool up)> destination)
+        {
+            int idx = 0;
+
+            if (shiftAction == ShiftAction.ReleaseShift)
+            {
+                if (lshiftPressed) destination[idx++] = (NativeMethods.VK_LSHIFT, true);
+                if (rshiftPressed) destination[idx++] = (NativeMethods.VK_RSHIFT, true);
+
+                destination[idx++] = (targetVkCode, up);
+
+                if (lshiftPressed) destination[idx++] = (NativeMethods.VK_LSHIFT, false);
+                if (rshiftPressed) destination[idx++] = (NativeMethods.VK_RSHIFT, false);
+            }
+            else if (shiftAction == ShiftAction.PressShift)
+            {
+                destination[idx++] = (NativeMethods.VK_LSHIFT, false);
+                destination[idx++] = (targetVkCode, up);
+                destination[idx++] = (NativeMethods.VK_LSHIFT, true);
+            }
+            else
+            {
+                destination[idx++] = (targetVkCode, up);
+            }
+
+            return idx;
         }
     }
 }

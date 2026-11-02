@@ -29,7 +29,7 @@
 
 ## 🚀 すぐに使う (ダウンロード)
 
-1. **[最新バージョンのダウンロード (ULE4JIS-ALT.exe)](https://raw.githubusercontent.com/mana2p/ULE4JIS-ALT/master/publish/ULE4JIS-ALT.exe)**
+1. **[最新バージョンのダウンロード (ULE4JIS-ALT.exe)](https://github.com/mana2p/ULE4JIS-ALT/releases/latest/download/ULE4JIS-ALT.exe)**
 2. ダウンロードした `ULE4JIS-ALT.exe` を実行するだけで、タスクバーの通知領域（トレイアイコン）に常駐します。
 3. トレイアイコンを右クリックして、使用する環境に合ったモードを選択してください。
 
@@ -91,6 +91,10 @@ US 配列キーボードには「変換」「無変換」キーがないため�
 - **ビルドコマンド**:
   ```powershell
   dotnet publish src/Ule4JisAlt -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish
+  ```
+- **テスト実行コマンド**:
+  ```powershell
+  dotnet test ULE4JIS.sln
   ```
 
 ---

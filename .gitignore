@@ -12,6 +12,6 @@
 ## AI Agent Scratch / Skill Docs
 docs/
 
-## Exception: Keep root publish directory for direct release download
-!/publish/
-!/publish/**
+## Build artifacts in publish directory (keep README.txt for release packaging)
+/publish/*
+!/publish/README.txt
